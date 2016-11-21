@@ -9,9 +9,9 @@ def findCorners(img):
     zmin, zmax = np.where(np.any(data, axis=(0, 1)))[0][[0, -1]]
 
     # Now convert to physical space
-    # Subtract 0.5 to get voxel centers
-    corners = np.array([[xmin-.5, ymin-.5, zmin-.5, 1.],
-                        [xmax-.5, ymax-.5, zmax-.5, 1.]])
+    # Add 0.5 to get voxel centers
+    corners = np.array([[xmin+.5, ymin+.5, zmin+.5, 1.],
+                        [xmax+.5, ymax+.5, zmax+.5, 1.]])
     print('corners1\n', corners)
     corners = np.dot(img.get_affine(), corners.T)
     print('corners2\n', corners)
