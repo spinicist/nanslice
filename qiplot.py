@@ -48,3 +48,31 @@ def applyCM(data, cm_name, cmin, cmax):
     cmap = cm.get_cmap(cm_name)
     m = cm.ScalarMappable(norm=norm, cmap=cmap)
     return m.to_rgba(data,alpha=1,bytes=False)[:,:,0:3]
+
+def scaleAlpha(sl, lo, hi):
+    np.clip((sl - lo) / (hi - lo), 0, 1, sl)
+    return sl
+
+def blend(sl_under, sl_over, sl_alpha):
+    return sl_under*(1 - sl_alpha[:,:,None]) + sl_over*sl_alpha[:,:,None]
+
+def mask(sl, mask):
+    return sl*mask[:,:,None]
+
+def alphabar(ax, cm_name, cmin, cmax, clabel, amin, amax, alabel):
+
+    csteps = 128
+    asteps = 32
+
+    color = applyCM(np.tile(np.linspace(cmin, cmax, csteps), [asteps, 1]),
+                    cm_name, cmin, cmax)
+    alpha = np.tile(np.linspace(0, 1, asteps), [csteps, 1]).T
+    bg    = np.ones((asteps, csteps, 3))
+    acmap = blend(bg, color, alpha)
+
+    ax.imshow(acmap, origin='lower', interpolation='hanning', extent=(cmin,cmax,amin,amax), aspect=1)
+    ax.set_xticks((cmin,(cmin+cmax)/2,cmax))
+    ax.set_xlabel(clabel)
+    ax.set_yticks((amin,amax))
+    ax.set_ylabel(alabel)
+    #ax.axis('off')
