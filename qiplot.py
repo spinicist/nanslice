@@ -21,23 +21,32 @@ def findCorners(img):
 
     return corner1, corner2
 
-def setupSlice(c1, c2, axis, f, samples):
+def setupSlice(c1, c2, axis, pos, samples, absolute=False):
+    ll = np.copy(c1)
     if (axis == 'z'):
-        ll = np.array([c1[0], c1[1], c1[2]*(1-f)+c2[2]*f])
+        if absolute:
+            ll[2] = pos
+        else:
+            ll[2] = c1[2]*(1-pos)+c2[2]*pos
         up = np.array([0, c2[1]-c1[1], 0])
         rt = np.array([c2[0]-c1[0], 0, 0])
         extent = (c1[0], c2[0], c1[1], c2[1])
     elif (axis == 'y'):
-        ll = np.array([c1[0], c1[1]*(1-f)+c2[1]*f, c1[2]])
+        if absolute:
+            ll[1] = pos
+        else:
+            ll[1] = c1[1]*(1-pos)+c2[1]*pos
         up = np.array([0, 0, c2[2]-c1[2]])
         rt = np.array([c2[0]-c1[0], 0, 0])
         extent = (c1[0], c2[0], c1[2], c2[2])
     elif (axis == 'x'):
-        ll = np.array([c1[0]*(1-f)+c2[0]*f, c1[1], c1[2]])
+        if absolute:
+            ll[0] = pos
+        else:
+            ll[0] = c1[0]*(1-pos)+c2[0]*pos
         up = np.array([0, c2[1]-c1[1], 0])
         rt = np.array([0, 0, c2[2]-c1[2]])
         extent = (c1[2], c2[2], c1[1], c2[1])
-
     slice = ll[:, None, None] + (rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
                   up[:, None, None] * np.linspace(0, 1, samples)[None, None, :])
     
