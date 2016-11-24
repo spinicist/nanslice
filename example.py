@@ -11,13 +11,15 @@ pstat = nib.load('/Users/Tobias/Data/MATRICS/rat/rlog_jacobian_vox_p_fstat1.nii'
 (tmin, tmax) = np.percentile(template.get_data(), (5,99))
 (corner1, corner2) = qiplot.findCorners(mask)
 
-gs = gridspec.GridSpec(4, 4, height_ratios=[1,1,1,0.5])
-gs.update(left=0.01, right=0.99, bottom=0.1, top=0.99, wspace=0.01, hspace=0.01)
 f = plt.figure(facecolor='black')
+gs1 = gridspec.GridSpec(4, 4)
+gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
+gs2 = gridspec.GridSpec(1, 1)
+gs2.update(left = 0.08, right = 0.92, bottom = 0.08, top = 0.16, wspace=0.1, hspace=0.1)
 
 for i in range(0,15):
-    ax = plt.subplot(gs[i], axisbg='black')
-    (sl, ext) = qiplot.setupSlice(corner1, corner2, 'z', (i / 15), 128)
+    ax = plt.subplot(gs1[i], axisbg='black')
+    (sl, ext) = qiplot.setupSlice(corner1, corner2, 'z', 120 + i, 128, absolute=True)
 
     sl_mask = qiplot.sampleSlice(mask, sl, order=1)
     sl_pstat = qiplot.scaleAlpha(qiplot.sampleSlice(pstat, sl), 0.5, 1.0)
@@ -30,9 +32,7 @@ for i in range(0,15):
     ax.contour(sl_pstat, (0.95,), origin='lower', extent = ext)
     ax.axis('off')
 
-gs = gridspec.GridSpec(1, 1)
-gs.update(left = 0.05, right = 0.95, bottom = 0.05, top = 0.1, wspace=0, hspace=0)
-ax = plt.subplot(gs[0], axisbg='black')
+ax = plt.subplot(gs2[0], axisbg='black')
 qiplot.alphabar(ax,'RdYlBu',-4,4,'T-Stat',0.5,1.0,'1-p')
 f.savefig('example.png',facecolor=f.get_facecolor(), edgecolor='none')
 
