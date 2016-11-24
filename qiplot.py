@@ -27,7 +27,17 @@ def setupSlice(c1, c2, axis, f, samples):
         up = np.array([0, c2[1]-c1[1], 0])
         rt = np.array([c2[0]-c1[0], 0, 0])
         extent = (c1[0], c2[0], c1[1], c2[1])
-    
+    elif (axis == 'y'):
+        ll = np.array([c1[0], c1[1]*(1-f)+c2[1]*f, c1[2]])
+        up = np.array([0, 0, c2[2]-c1[2]])
+        rt = np.array([c2[0]-c1[0], 0, 0])
+        extent = (c1[0], c2[0], c1[2], c2[2])
+    elif (axis == 'x'):
+        ll = np.array([c1[0]*(1-f)+c2[0]*f, c1[1], c1[2]])
+        up = np.array([0, c2[1]-c1[1], 0])
+        rt = np.array([0, 0, c2[2]-c1[2]])
+        extent = (c1[2], c2[2], c1[1], c2[1])
+
     slice = ll[:, None, None] + (rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
                   up[:, None, None] * np.linspace(0, 1, samples)[None, None, :])
     
