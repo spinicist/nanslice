@@ -47,12 +47,13 @@ def setupSlice(c1, c2, axis, pos, samples, absolute=False):
         up = np.array([0, c2[1]-c1[1], 0])
         rt = np.array([0, 0, c2[2]-c1[2]])
         extent = (c1[2], c2[2], c1[1], c2[1])
+    aspect = np.linalg.norm(up) / np.linalg.norm(rt)
+    samples_up = np.round(aspect * samples)
     slice = ll[:, None, None] + (rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
-                  up[:, None, None] * np.linspace(0, 1, samples)[None, None, :])
-    
+                  up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
     return slice, extent
 
-def sampleSlice(img, sl, order=3):
+def sampleSlice(img, sl, order=1):
     old_sz = sl.shape
     new_sz = np.prod(sl.shape[1:])
     sl = sl.reshape([3, new_sz])
