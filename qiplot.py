@@ -63,15 +63,14 @@ def sampleSlice(img, sl, order=1):
     isl = np.array(isl).reshape(old_sz)
     return ndinterp.map_coordinates(img.get_data(), isl, order=order).T
 
-def applyCM(data, cm_name, cmin, cmax):
-    norm = mpl.colors.Normalize(vmin=cmin, vmax=cmax)
+def applyCM(data, cm_name, clims):
+    norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])
     cmap = cm.get_cmap(cm_name)
     m = cm.ScalarMappable(norm=norm, cmap=cmap)
     return m.to_rgba(data,alpha=1,bytes=False)[:,:,0:3]
 
-def scaleAlpha(sl, lo, hi):
-    np.clip((sl - lo) / (hi - lo), 0, 1, sl)
-    return sl
+def scaleAlpha(sl, lims):
+    return np.clip((sl - lims[0]) / (lims[1] - lims[0]), 0, 1)
 
 def blend(sl_under, sl_over, sl_alpha):
     return sl_under*(1 - sl_alpha[:,:,None]) + sl_over*sl_alpha[:,:,None]
@@ -79,21 +78,21 @@ def blend(sl_under, sl_over, sl_alpha):
 def mask(sl, mask):
     return sl*mask[:,:,None]
 
-def alphabar(ax, cm_name, cmin, cmax, clabel, amin, amax, alabel):
+def alphabar(ax, cm_name, clims, clabel, alims, alabel):
 
-    csteps = 128
+    csteps = 64
     asteps = 32
 
-    color = applyCM(np.tile(np.linspace(cmin, cmax, csteps), [asteps, 1]),
-                    cm_name, cmin, cmax)
+    color = applyCM(np.tile(np.linspace(clims[0], clims[1], csteps), [asteps, 1]),
+                    cm_name, clims)
     alpha = np.tile(np.linspace(0, 1, asteps), [csteps, 1]).T
     bg    = np.ones((asteps, csteps, 3))
     acmap = blend(bg, color, alpha)
 
-    ax.imshow(acmap, origin='lower', interpolation='hanning', extent=(cmin,cmax,amin,amax), aspect=1)
+    ax.imshow(acmap, origin='lower', interpolation='hanning', extent=(clims[0],clims[1],alims[0],alims[1]), aspect='auto')
     ax.set_xlabel(clabel)
-    ax.set_xticks((cmin,(cmin+cmax)/2,cmax))
-    ax.set_yticks((amin,amax))
+    ax.set_xticks((clims[0],(clims[0]+clims[1])/2,clims[1]))
+    ax.set_yticks((alims[0],alims[1]))
     ax.set_ylabel(alabel)
     ax.spines['bottom'].set_color('w')
     ax.spines['top'].set_color('w') 
