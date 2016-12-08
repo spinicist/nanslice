@@ -75,11 +75,10 @@ def scaleAlpha(sl, lims):
 def blend(sl_under, sl_over, sl_alpha):
     return sl_under*(1 - sl_alpha[:,:,None]) + sl_over*sl_alpha[:,:,None]
 
-def mask(sl, mask):
-    return sl*mask[:,:,None]
+def mask(sl, mask, bg=np.array((0,0,0))):
+    return blend(bg, sl, mask)
 
-def alphabar(ax, cm_name, clims, clabel, alims, alabel):
-
+def alphabar(ax, cm_name, clims, clabel, alims, alabel, black_bg = True):
     csteps = 64
     asteps = 32
 
@@ -94,14 +93,22 @@ def alphabar(ax, cm_name, clims, clabel, alims, alabel):
     ax.set_xticks((clims[0],(clims[0]+clims[1])/2,clims[1]))
     ax.set_yticks((alims[0],alims[1]))
     ax.set_ylabel(alabel)
-    ax.spines['bottom'].set_color('w')
-    ax.spines['top'].set_color('w') 
-    ax.spines['right'].set_color('w')
-    ax.spines['left'].set_color('w')
-
-    ax.tick_params(axis='x', colors='w')
-    ax.tick_params(axis='y', colors='w')
-
-    ax.yaxis.label.set_color('w')
-    ax.xaxis.label.set_color('w')
-    #ax.axis('off')
+    if (black_bg):
+        ax.spines['bottom'].set_color('w')
+        ax.spines['top'].set_color('w') 
+        ax.spines['right'].set_color('w')
+        ax.spines['left'].set_color('w')
+        ax.tick_params(axis='x', colors='w')
+        ax.tick_params(axis='y', colors='w')
+        ax.yaxis.label.set_color('w')
+        ax.xaxis.label.set_color('w')
+    else:
+        ax.spines['bottom'].set_color('k')
+        ax.spines['top'].set_color('k') 
+        ax.spines['right'].set_color('k')
+        ax.spines['left'].set_color('k')
+        ax.tick_params(axis='x', colors='k')
+        ax.tick_params(axis='y', colors='k')
+        ax.yaxis.label.set_color('k')
+        ax.xaxis.label.set_color('k')
+        ax.axis('on')
