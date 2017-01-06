@@ -89,10 +89,12 @@ def alphabar(ax, cm_name, clims, clabel, alims, alabel, black_bg = True):
     acmap = blend(bg, color, alpha)
 
     ax.imshow(acmap, origin='lower', interpolation='hanning', extent=(clims[0],clims[1],alims[0],alims[1]), aspect='auto')
-    ax.set_xlabel(clabel)
-    ax.set_xticks((clims[0],(clims[0]+clims[1])/2,clims[1]))
-    ax.set_yticks((alims[0],alims[1]))
-    ax.set_ylabel(alabel)
+    #ax.set_xlabel(clabel)
+    ax.set_xticks((clims[0],np.sum(clims)/2,clims[1]))
+    ax.set_xticklabels(('{:.1f}'.format(clims[0]),clabel,'{:.1f}'.format(clims[1])))
+    ax.set_yticks((alims[0],np.sum(alims)/2,alims[1]))
+    ax.set_yticklabels(('{:.1f}'.format(alims[0]),alabel,'{:.1f}'.format(alims[1])))
+    #ax.set_ylabel(alabel)
     if (black_bg):
         ax.spines['bottom'].set_color('w')
         ax.spines['top'].set_color('w') 
