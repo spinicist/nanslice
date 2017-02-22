@@ -9,8 +9,8 @@ found in the root directory of the project.
 """
 
 import sys
+import argparse
 import qicommon
-
 import numpy as np
 import nibabel as nib
 import matplotlib
@@ -27,8 +27,7 @@ PROG_VERSION = "0.1"
 class QICanvas(FigureCanvas):
     """Canvas to draw slices in."""
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100,
-                 base_file=None, mask_file=None, color_file=None, alpha_file=None):
+    def __init__(self, args, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
 
         gs1 = GridSpec(1, 3)
@@ -49,34 +48,32 @@ class QICanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        if base_file is None or mask_file is None or color_file is None or alpha_file is None:
-            raise ValueError('Must specify base, mask, color and alpha images')
-        self.img_mask = nib.load(base_file)
-        self.img_base = nib.load(mask_file)
-        self.img_color = nib.load(color_file)
-        self.img_alpha = nib.load(alpha_file)
-        (corner1, corner2) = qicommon.findCorners(self.img_mask)
-        self.cursor = (corner1 + corner2) / 2
+        self.img_mask = nib.load(args.base_image)
+        self.img_base = nib.load(args.mask_image)
+        self.img_color = nib.load(args.color_image)
+        self.img_alpha = nib.load(args.alpha_image)
+
+        self.corners = qicommon.findCorners(self.img_mask)
+        self.cursor = (self.corners[0] + self.corners[1]) / 2
+        self.base_window = np.percentile(self.img_base.get_data(), args.window)
+        self.args = args
         self.update_figure()
 
     def update_figure(self):
-        (tmin, tmax) = np.percentile(self.img_base.get_data(), (1, 99))
-        (corner1, corner2) = qicommon.findCorners(self.img_mask)
-
-        cmap = 'RdYlBu_r'
         directions = ('x', 'y', 'z')
         for i in range(3):
-            (this_slice, sl_extent) = qicommon.setupSlice(corner1, corner2, directions[i], 
+            (this_slice, sl_extent) = qicommon.setupSlice(self.corners[0], self.corners[1], directions[i], 
                                                         self.cursor[i], 128, absolute=True)
             sl_img_mask = qicommon.sampleSlice(self.img_mask, this_slice, order=1)
             sl_base = qicommon.applyCM(qicommon.sampleSlice(self.img_base, this_slice),
-                                     'gray', (tmin, tmax))
-            sl_color = qicommon.applyCM(qicommon.sampleSlice(self.img_color, this_slice), cmap, (-4, 4))
-            sl_alpha = qicommon.scaleAlpha(qicommon.sampleSlice(self.img_alpha, this_slice), (0.5, 1.0))
+                                       'gray', self.base_window)
+            sl_color = qicommon.applyCM(qicommon.sampleSlice(self.img_color, this_slice)*self.args.color_scale,
+                                        self.args.color_map, self.args.color_lims)
+            sl_alpha = qicommon.scaleAlpha(qicommon.sampleSlice(self.img_alpha, this_slice), self.args.alpha_lims)
             sl_blend = qicommon.mask(qicommon.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
             self.axes[i].cla()
             self.axes[i].imshow(sl_blend, origin='lower', extent=sl_extent, interpolation='hanning')
-            self.axes[i].contour(sl_alpha, (0.95,), origin='lower', extent=sl_extent)
+            self.axes[i].contour(sl_alpha, (self.args.contour,), origin='lower', extent=sl_extent)
             self.axes[i].axis('off')
             self.axes[i].axis('image')
         
@@ -88,7 +85,9 @@ class QICanvas(FigureCanvas):
         self.axes[2].axhline(y=self.cursor[1], color='g')
         self.axes[2].axvline(x=self.cursor[0], color='g')
 
-        qicommon.alphabar(self.cbar_axis, cmap, (-4, 4), 'T-Stat', (0.5, 1.0), '1 - p')
+        qicommon.alphabar(self.cbar_axis, 
+                          self.args.color_map, self.args.color_lims, self.args.color_label,
+                          self.args.alpha_lims, self.args.alpha_label)
         self.draw()
 
     def handle_mouse_event(self, event):
@@ -112,7 +111,7 @@ class QICanvas(FigureCanvas):
             self.parent().parent().statusBar().showMessage(msg)
 
 class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, args):
         QtWidgets.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("application main window")
@@ -131,11 +130,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.main_widget = QtWidgets.QWidget(self)
 
         layout = QtWidgets.QVBoxLayout(self.main_widget)
-        qicanvas = QICanvas(self.main_widget, width=5, height=4, dpi=100,
-                            base_file=sys.argv[1],
-                            mask_file=sys.argv[2],
-                            color_file=sys.argv[3],
-                            alpha_file=sys.argv[4])
+        qicanvas = QICanvas(args, self.main_widget, width=5, height=4, dpi=100)
         layout.addWidget(qicanvas)
 
         self.main_widget.setFocus()
@@ -159,8 +154,22 @@ With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.h
 
 # pylint insists anything at module level is a constant, so disable the stupidity
 # pylint: disable=C0103
+parser = argparse.ArgumentParser(description='Dual-coding viewer.')
+parser.add_argument('base_image',help='Base (structural image)',type=str)
+parser.add_argument('mask_image',help='Mask image',type=str)
+parser.add_argument('color_image',help='Image for color-coding of overlay',type=str)
+parser.add_argument('alpha_image',help='Image for transparency-coding of overlay',type=str)
+parser.add_argument('--window', nargs=2, default=(1,99), help='Specify base image window (in percentiles)')
+parser.add_argument('--alpha_lims', nargs=2,default=(0.5,1.0), help='Alpha/transparency window, default=0.5 1.0')
+parser.add_argument('--alpha_label', type=str, default='1-p', help='Label for alpha/transparency axis')
+parser.add_argument('--contour',help='Specify value for alpha image contour, default=0.95',type=float,default=0.95)
+parser.add_argument('--color_lims', type=float, nargs=2, default=(-1,1), help='Colormap window, default=-1 1')
+parser.add_argument('--color_scale', type=float, default=1, help='Multiply color image by value, default=1')
+parser.add_argument('--color_map', type=str, default='RdYlBu_r', help='Colormap to use from Matplotlib, default = RdYlBu_r')
+parser.add_argument('--color_label', type=str, default='% Change', help='Label for color axis')
+args = parser.parse_args()
 application = QtWidgets.QApplication(sys.argv)
-window = ApplicationWindow()
+window = ApplicationWindow(args)
 window.setWindowTitle("%s" % PROG_NAME)
 window.show()
 sys.exit(application.exec_())
