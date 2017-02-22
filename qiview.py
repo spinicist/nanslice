@@ -21,22 +21,7 @@ PROG_NAME = 'QIView'
 PROG_VERSION = "0.1"
 
 class QICanvas(FigureCanvas):
-    """Canvas to draw this_slices in."""
-
-    def handle_mouse_event(self, event):
-        if (event.button == 1):
-            if (event.inaxes == self.axes[0]):
-                self.cursor[1] = event.ydata
-                self.cursor[2] = event.xdata
-                self.update_figure()
-            elif (event.inaxes == self.axes[1]):
-                self.cursor[0] = event.xdata
-                self.cursor[2] = event.ydata
-                self.update_figure()
-            elif (event.inaxes == self.axes[2]):
-                self.cursor[0] = event.xdata
-                self.cursor[1] = event.ydata
-                self.update_figure()
+    """Canvas to draw slices in."""
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
@@ -88,9 +73,32 @@ class QICanvas(FigureCanvas):
             self.axes[i].contour(sl_alpha, (0.95,), origin='lower', extent=sl_extent)
             self.axes[i].axis('off')
             self.axes[i].axis('image')
-
+        
+        # Do these individually now because I'm not clever enough to set them in the loop
+        self.axes[0].axhline(y=self.cursor[1], color='g')
+        self.axes[0].axvline(x=self.cursor[2], color='g')
+        self.axes[1].axhline(y=self.cursor[2], color='g')
+        self.axes[1].axvline(x=self.cursor[0], color='g')
+        self.axes[2].axhline(y=self.cursor[1], color='g')
+        self.axes[2].axvline(x=self.cursor[0], color='g')
+        
         qiplot.alphabar(self.cbar_axis, cmap, (-4, 4), 'T-Stat', (0.5, 1.0), '1 - p')
         self.draw()
+
+    def handle_mouse_event(self, event):
+        if (event.button == 1):
+            if (event.inaxes == self.axes[0]):
+                self.cursor[1] = event.ydata
+                self.cursor[2] = event.xdata
+                self.update_figure()
+            elif (event.inaxes == self.axes[1]):
+                self.cursor[0] = event.xdata
+                self.cursor[2] = event.ydata
+                self.update_figure()
+            elif (event.inaxes == self.axes[2]):
+                self.cursor[0] = event.xdata
+                self.cursor[1] = event.ydata
+                self.update_figure()
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
