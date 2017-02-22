@@ -5,7 +5,7 @@ Adapted from http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.htm
 Copyright (C) 2017 Tobias Wood"""
 
 import sys
-import qiplot
+import qicommon
 
 import numpy as np
 import nibabel as nib
@@ -51,25 +51,25 @@ class QICanvas(FigureCanvas):
         self.img_base = nib.load(mask_file)
         self.img_color = nib.load(color_file)
         self.img_alpha = nib.load(alpha_file)
-        (corner1, corner2) = qiplot.findCorners(self.img_mask)
+        (corner1, corner2) = qicommon.findCorners(self.img_mask)
         self.cursor = (corner1 + corner2) / 2
         self.update_figure()
 
     def update_figure(self):
         (tmin, tmax) = np.percentile(self.img_base.get_data(), (1, 99))
-        (corner1, corner2) = qiplot.findCorners(self.img_mask)
+        (corner1, corner2) = qicommon.findCorners(self.img_mask)
 
         cmap = 'RdYlBu_r'
         directions = ('x', 'y', 'z')
         for i in range(3):
-            (this_slice, sl_extent) = qiplot.setupSlice(corner1, corner2, directions[i], 
+            (this_slice, sl_extent) = qicommon.setupSlice(corner1, corner2, directions[i], 
                                                         self.cursor[i], 128, absolute=True)
-            sl_img_mask = qiplot.sampleSlice(self.img_mask, this_slice, order=1)
-            sl_base = qiplot.applyCM(qiplot.sampleSlice(self.img_base, this_slice),
+            sl_img_mask = qicommon.sampleSlice(self.img_mask, this_slice, order=1)
+            sl_base = qicommon.applyCM(qicommon.sampleSlice(self.img_base, this_slice),
                                      'gray', (tmin, tmax))
-            sl_color = qiplot.applyCM(qiplot.sampleSlice(self.img_color, this_slice), cmap, (-4, 4))
-            sl_alpha = qiplot.scaleAlpha(qiplot.sampleSlice(self.img_alpha, this_slice), (0.5, 1.0))
-            sl_blend = qiplot.mask(qiplot.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
+            sl_color = qicommon.applyCM(qicommon.sampleSlice(self.img_color, this_slice), cmap, (-4, 4))
+            sl_alpha = qicommon.scaleAlpha(qicommon.sampleSlice(self.img_alpha, this_slice), (0.5, 1.0))
+            sl_blend = qicommon.mask(qicommon.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
             self.axes[i].cla()
             self.axes[i].imshow(sl_blend, origin='lower', extent=sl_extent, interpolation='hanning')
             self.axes[i].contour(sl_alpha, (0.95,), origin='lower', extent=sl_extent)
@@ -84,7 +84,7 @@ class QICanvas(FigureCanvas):
         self.axes[2].axhline(y=self.cursor[1], color='g')
         self.axes[2].axvline(x=self.cursor[0], color='g')
 
-        qiplot.alphabar(self.cbar_axis, cmap, (-4, 4), 'T-Stat', (0.5, 1.0), '1 - p')
+        qicommon.alphabar(self.cbar_axis, cmap, (-4, 4), 'T-Stat', (0.5, 1.0), '1 - p')
         self.draw()
 
     def handle_mouse_event(self, event):
@@ -101,8 +101,8 @@ class QICanvas(FigureCanvas):
                 self.cursor[0] = event.xdata
                 self.cursor[1] = event.ydata
                 self.update_figure()
-            color_val = qiplot.samplePoint(self.img_color, self.cursor)
-            alpha_val = qiplot.samplePoint(self.img_alpha, self.cursor)
+            color_val = qicommon.samplePoint(self.img_color, self.cursor)
+            alpha_val = qicommon.samplePoint(self.img_alpha, self.cursor)
             msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
