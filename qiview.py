@@ -48,8 +48,8 @@ class QICanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        self.img_mask = nib.load(args.base_image)
-        self.img_base = nib.load(args.mask_image)
+        self.img_base = nib.load(args.base_image)
+        self.img_mask = nib.load(args.mask_image)
         self.img_color = nib.load(args.color_image)
         self.img_alpha = nib.load(args.alpha_image)
 
