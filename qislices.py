@@ -1,4 +1,8 @@
 #!python
+# Copyright (C) 2017 Tobias Wood
+
+# This code is subject to the terms of the Mozilla Public License. A copy can be
+# found in the root directory of the project.
 import os
 import argparse
 import numpy as np

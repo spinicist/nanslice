@@ -2,7 +2,11 @@
 
 Adapted from http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html
 
-Copyright (C) 2017 Tobias Wood"""
+Copyright (C) 2017 Tobias Wood
+
+This code is subject to the terms of the Mozilla Public License. A copy can be
+found in the root directory of the project.
+"""
 
 import sys
 import qicommon
