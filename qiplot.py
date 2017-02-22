@@ -53,12 +53,18 @@ def setupSlice(c1, c2, axis, pos, samples, absolute=False):
                   up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
     return slice, extent
 
+def samplePoint(img, point, order=1):
+    scale = np.mat(img.get_affine()[0:3, 0:3]).I
+    offset = np.dot(-scale,img.get_affine()[0:3, 3]).T
+    s_point = np.dot(scale, point).T + offset[:]
+    return ndinterp.map_coordinates(img.get_data(), s_point, order=order)
+
 def sampleSlice(img, sl, order=1):
     old_sz = sl.shape
     new_sz = np.prod(sl.shape[1:])
     sl = sl.reshape([3, new_sz])
-    scale = np.mat(img.get_affine()[0:3,0:3]).I
-    offset = np.dot(-scale,img.get_affine()[0:3,3]).T
+    scale = np.mat(img.get_affine()[0:3, 0:3]).I
+    offset = np.dot(-scale,img.get_affine()[0:3, 3]).T
     isl = np.dot(scale, sl) + offset[:]
     isl = np.array(isl).reshape(old_sz)
     return ndinterp.map_coordinates(img.get_data(), isl, order=order).T

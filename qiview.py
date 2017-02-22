@@ -81,24 +81,31 @@ class QICanvas(FigureCanvas):
         self.axes[1].axvline(x=self.cursor[0], color='g')
         self.axes[2].axhline(y=self.cursor[1], color='g')
         self.axes[2].axvline(x=self.cursor[0], color='g')
-        
+
         qiplot.alphabar(self.cbar_axis, cmap, (-4, 4), 'T-Stat', (0.5, 1.0), '1 - p')
         self.draw()
 
     def handle_mouse_event(self, event):
-        if (event.button == 1):
-            if (event.inaxes == self.axes[0]):
+        if event.button == 1:
+            if event.inaxes == self.axes[0]:
                 self.cursor[1] = event.ydata
                 self.cursor[2] = event.xdata
                 self.update_figure()
-            elif (event.inaxes == self.axes[1]):
+            elif event.inaxes == self.axes[1]:
                 self.cursor[0] = event.xdata
                 self.cursor[2] = event.ydata
                 self.update_figure()
-            elif (event.inaxes == self.axes[2]):
+            elif event.inaxes == self.axes[2]:
                 self.cursor[0] = event.xdata
                 self.cursor[1] = event.ydata
                 self.update_figure()
+            color_val = qiplot.samplePoint(self.img_color, self.cursor)
+            print(color_val)
+            alpha_val = qiplot.samplePoint(self.img_alpha, self.cursor)
+            print(alpha_val)
+            msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
+            # Parent of this is the layout, call parent again to get the main window
+            self.parent().parent().statusBar().showMessage(msg)
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     def __init__(self):
