@@ -10,6 +10,8 @@ If you find the tools useful the author would love to hear from you.
 
 # Brief Description #
 
+![Screenshot](screenshot.png)
+
 These scripts are an implementation of the 'Dual-Coding' visualisation method
 that can be found in this paper: http://dx.doi.org/10.1016/j.neuron.2012.05.001
 
@@ -32,14 +34,29 @@ difference or "percent change" is a meaningful, well-defined quantity. If you
 use these tools to plot "percent BOLD signal change", I hope you know what you
 what you are doing and wish you luck with your reviewers.
 
+# Usage #
+
+There are two scripts - `qiview.py` is a simple interactive viewer and
+`qislices.py` can be used to generate figures for publication. They have been
+designed around the output of FSL `randomise`, but should work with other stats
+programs as well. To run `qiview` type:
+
+`python qiview.py path/to/base_image path/to/mask path/to/tstat path/to/pstat`
+
+The mask will be used to set the bounding box for the slices.
+
+`qislices.py` has a help string - run `python qislices.py` to show it. Options
+are provided to choose the number of slices, colormap and the limits for color
+and alpha. 
+
 # Dependencies #
 
 I wrote this using an Anaconda distribution, with:
-Python 3.5.2
-Numpy 1.11.3
-Matplotlib 2.0.0
-Nibabel 2.0.2
-PyQt5 5.6.0
+* Python 3.5.2
+* Numpy 1.11.3
+* Matplotlib 2.0.0
+* Nibabel 2.0.2
+* PyQt5 5.6.0
 
 # Performance #
 
