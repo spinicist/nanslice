@@ -23,7 +23,8 @@ PROG_VERSION = "0.1"
 class QICanvas(FigureCanvas):
     """Canvas to draw slices in."""
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, parent=None, width=5, height=4, dpi=100,
+                 base_file=None, mask_file=None, color_file=None, alpha_file=None):
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
 
         gs1 = GridSpec(1, 3)
@@ -44,11 +45,12 @@ class QICanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        print('Loading')
-        self.img_mask = nib.load('/Users/Tobias/Data/MATRICS/mouse/mask.nii')
-        self.img_base = nib.load('/Users/Tobias/Data/MATRICS/mouse/stdWarped.nii.gz')
-        self.img_color = nib.load('/Users/Tobias/Data/MATRICS/mouse/rlog_jacobian_tstat1.nii.gz')
-        self.img_alpha = nib.load('/Users/Tobias/Data/MATRICS/mouse/rlog_jacobian_vox_p_fstat1.nii')
+        if base_file is None or mask_file is None or color_file is None or alpha_file is None:
+            raise ValueError('Must specify base, mask, color and alpha images')
+        self.img_mask = nib.load(base_file)
+        self.img_base = nib.load(mask_file)
+        self.img_color = nib.load(color_file)
+        self.img_alpha = nib.load(alpha_file)
         (corner1, corner2) = qiplot.findCorners(self.img_mask)
         self.cursor = (corner1 + corner2) / 2
         self.update_figure()
@@ -100,9 +102,7 @@ class QICanvas(FigureCanvas):
                 self.cursor[1] = event.ydata
                 self.update_figure()
             color_val = qiplot.samplePoint(self.img_color, self.cursor)
-            print(color_val)
             alpha_val = qiplot.samplePoint(self.img_alpha, self.cursor)
-            print(alpha_val)
             msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
@@ -127,7 +127,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.main_widget = QtWidgets.QWidget(self)
 
         layout = QtWidgets.QVBoxLayout(self.main_widget)
-        qicanvas = QICanvas(self.main_widget, width=5, height=4, dpi=100)
+        qicanvas = QICanvas(self.main_widget, width=5, height=4, dpi=100,
+                            base_file=sys.argv[1],
+                            mask_file=sys.argv[2],
+                            color_file=sys.argv[3],
+                            alpha_file=sys.argv[4])
         layout.addWidget(qicanvas)
 
         self.main_widget.setFocus()
