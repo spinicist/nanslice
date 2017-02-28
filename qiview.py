@@ -63,16 +63,16 @@ class QICanvas(FigureCanvas):
         directions = ('x', 'y', 'z')
         for i in range(3):
             (this_slice, sl_extent) = qicommon.setupSlice(self.corners[0], self.corners[1], directions[i], 
-                                                        self.cursor[i], 128, absolute=True)
-            sl_img_mask = qicommon.sampleSlice(self.img_mask, this_slice, order=1)
-            sl_base = qicommon.applyCM(qicommon.sampleSlice(self.img_base, this_slice),
+                                                          self.cursor[i], self.args.samples, absolute=True)
+            sl_img_mask = qicommon.sampleSlice(self.img_mask, this_slice, self.args.interp_order)
+            sl_base = qicommon.applyCM(qicommon.sampleSlice(self.img_base, this_slice, self.args.interp_order),
                                        'gray', self.base_window)
-            sl_color = qicommon.applyCM(qicommon.sampleSlice(self.img_color, this_slice)*self.args.color_scale,
+            sl_color = qicommon.applyCM(qicommon.sampleSlice(self.img_color, this_slice, self.args.interp_order)*self.args.color_scale,
                                         self.args.color_map, self.args.color_lims)
-            sl_alpha = qicommon.scaleAlpha(qicommon.sampleSlice(self.img_alpha, this_slice), self.args.alpha_lims)
+            sl_alpha = qicommon.scaleAlpha(qicommon.sampleSlice(self.img_alpha, this_slice, self.args.interp_order), self.args.alpha_lims)
             sl_blend = qicommon.mask(qicommon.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
             self.axes[i].cla()
-            self.axes[i].imshow(sl_blend, origin='lower', extent=sl_extent, interpolation='hanning')
+            self.axes[i].imshow(sl_blend, origin='lower', extent=sl_extent, interpolation=self.args.interp)
             self.axes[i].contour(sl_alpha, (self.args.contour,), origin='lower', extent=sl_extent)
             self.axes[i].axis('off')
             self.axes[i].axis('image')
@@ -160,6 +160,9 @@ parser.add_argument('mask_image',help='Mask image',type=str)
 parser.add_argument('color_image',help='Image for color-coding of overlay',type=str)
 parser.add_argument('alpha_image',help='Image for transparency-coding of overlay',type=str)
 parser.add_argument('--window', nargs=2, default=(1,99), help='Specify base image window (in percentiles)')
+parser.add_argument('--samples', type=int, default=128, help='Number of samples for slicing, default=128')
+parser.add_argument('--interp', type=str, default='hanning', help='Display interpolation mode, default=hanning')
+parser.add_argument('--interp_order', type=int, default=1, help='Data interpolation order, default=1')
 parser.add_argument('--alpha_lims', nargs=2,default=(0.5,1.0), help='Alpha/transparency window, default=0.5 1.0')
 parser.add_argument('--alpha_label', type=str, default='1-p', help='Label for alpha/transparency axis')
 parser.add_argument('--contour',help='Specify value for alpha image contour, default=0.95',type=float,default=0.95)
