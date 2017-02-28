@@ -9,6 +9,7 @@ found in the root directory of the project.
 """
 
 import sys
+import time
 import argparse
 import qicommon
 import numpy as np
@@ -60,6 +61,7 @@ class QICanvas(FigureCanvas):
         self.update_figure()
 
     def update_figure(self):
+        t0 = time.time()
         directions = ('x', 'y', 'z')
         for i in range(3):
             (this_slice, sl_extent) = qicommon.setupSlice(self.corners[0], self.corners[1], directions[i], 
@@ -88,6 +90,8 @@ class QICanvas(FigureCanvas):
         qicommon.alphabar(self.cbar_axis, 
                           self.args.color_map, self.args.color_lims, self.args.color_label,
                           self.args.alpha_lims, self.args.alpha_label)
+        t1 = time.time()
+        print('Update time: ', (t1 - t0)*1000, 'ms')
         self.draw()
 
     def handle_mouse_event(self, event):
