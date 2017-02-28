@@ -95,6 +95,9 @@ class QICanvas(FigureCanvas):
                     self._images[i] = self.axes[i].imshow(sl_blend, origin='lower',
                                                           extent=self._slices[i].extent,
                                                           interpolation=self.args.interp)
+                    # If these calls go in __init__ then images don't show
+                    self.axes[i].axis('off')
+                    self.axes[i].axis('image')
                 else:
                     self._images[i].set_data(sl_blend)
                 if self._contours[i] is not None:
