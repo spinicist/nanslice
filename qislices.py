@@ -45,7 +45,7 @@ img_alpha = nib.load(args.alpha_image)
 print('*** Setup')
 window = np.percentile(img_base.get_data(), args.window)
 print('Base image window: ', window[0], ' - ', window[1])
-(corner1, corner2) = qicommon.findCorners(img_mask)
+(corner1, corner2) = qicommon.find_bbox(img_mask)
 print('Bounding box: ', corner1, ' -> ', corner2)
 slice_total = args.slice_rows*args.slice_cols
 print(slice_total, ' slices in ', args.slice_rows, ' rows and ', args.slice_cols, ' columns')

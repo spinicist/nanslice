@@ -3,7 +3,8 @@ import scipy.ndimage.interpolation as ndinterp
 import matplotlib as mpl
 import matplotlib.cm as cm
 
-def findCorners(img):
+def find_bbox(img):
+    """Finds the bounding box of non-zero voxels"""
     data = img.get_data()
 
     # Individual axis min/max
@@ -11,14 +12,13 @@ def findCorners(img):
     ymin, ymax = np.where(np.any(data, axis=(0, 2)))[0][[0, -1]]
     zmin, zmax = np.where(np.any(data, axis=(0, 1)))[0][[0, -1]]
 
-    # Now convert to physical space
+    # Convert to physical space
     corners = np.array([[xmin, ymin, zmin, 1.],
                         [xmax, ymax, zmax, 1.]])
     corners = np.dot(img.get_affine(), corners.T)
-    corner1 = np.min(corners[0:3,:], axis=1)
-    corner2 = np.max(corners[0:3,:], axis=1)
     # Now do min/max again to standardise corners
-
+    corner1 = np.min(corners[0:3, :], axis=1)
+    corner2 = np.max(corners[0:3, :], axis=1)
     return corner1, corner2
 
 def setupSlice(c1, c2, axis, pos, samples, absolute=False):

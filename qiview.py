@@ -54,7 +54,7 @@ class QICanvas(FigureCanvas):
         self.img_color = nib.load(args.color_image)
         self.img_alpha = nib.load(args.alpha_image)
 
-        self.corners = qicommon.findCorners(self.img_mask)
+        self.corners = qicommon.find_bbox(self.img_mask)
         self.cursor = (self.corners[0] + self.corners[1]) / 2
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
