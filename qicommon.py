@@ -1,3 +1,6 @@
+"""qicommon.py
+
+Provides common functions / classes for qiview and qislices"""
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 import matplotlib as mpl
@@ -12,7 +15,7 @@ def find_bbox(img):
     ymin, ymax = np.where(np.any(data, axis=(0, 2)))[0][[0, -1]]
     zmin, zmax = np.where(np.any(data, axis=(0, 1)))[0][[0, -1]]
 
-    # Convert to physical space
+    # Convedir_rt to physical space
     corners = np.array([[xmin, ymin, zmin, 1.],
                         [xmax, ymax, zmax, 1.]])
     corners = np.dot(img.get_affine(), corners.T)
@@ -21,37 +24,55 @@ def find_bbox(img):
     corner2 = np.max(corners[0:3, :], axis=1)
     return corner1, corner2
 
-def setupSlice(c1, c2, axis, pos, samples, absolute=False):
-    ll = np.copy(c1)
-    if (axis == 'z'):
-        if absolute:
-            ll[2] = pos
-        else:
-            ll[2] = c1[2]*(1-pos)+c2[2]*pos
-        up = np.array([0, c2[1]-c1[1], 0])
-        rt = np.array([c2[0]-c1[0], 0, 0])
-        extent = (c1[0], c2[0], c1[1], c2[1])
-    elif (axis == 'y'):
-        if absolute:
-            ll[1] = pos
-        else:
-            ll[1] = c1[1]*(1-pos)+c2[1]*pos
-        up = np.array([0, 0, c2[2]-c1[2]])
-        rt = np.array([c2[0]-c1[0], 0, 0])
-        extent = (c1[0], c2[0], c1[2], c2[2])
-    elif (axis == 'x'):
-        if absolute:
-            ll[0] = pos
-        else:
-            ll[0] = c1[0]*(1-pos)+c2[0]*pos
-        up = np.array([0, c2[1]-c1[1], 0])
-        rt = np.array([0, 0, c2[2]-c1[2]])
-        extent = (c1[2], c2[2], c1[1], c2[1])
-    aspect = np.linalg.norm(up) / np.linalg.norm(rt)
-    samples_up = np.round(aspect * samples)
-    slice = ll[:, None, None] + (rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
-                  up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
-    return slice, extent
+class Slice:
+    """A very simple slice class. Stores physical & voxel space co-ords"""
+    def __init__(self, c1, c2, axis, pos, samples, absolute=False):
+        start = np.copy(c1)
+        if axis == 'z':
+            if absolute:
+                start[2] = pos
+            else:
+                start[2] = c1[2]*(1-pos)+c2[2]*pos
+            dir_up = np.array([0, c2[1]-c1[1], 0])
+            dir_rt = np.array([c2[0]-c1[0], 0, 0])
+            extent = (c1[0], c2[0], c1[1], c2[1])
+        elif axis == 'y':
+            if absolute:
+                start[1] = pos
+            else:
+                start[1] = c1[1]*(1-pos)+c2[1]*pos
+            dir_up = np.array([0, 0, c2[2]-c1[2]])
+            dir_rt = np.array([c2[0]-c1[0], 0, 0])
+            extent = (c1[0], c2[0], c1[2], c2[2])
+        elif axis == 'x':
+            if absolute:
+                start[0] = pos
+            else:
+                start[0] = c1[0]*(1-pos)+c2[0]*pos
+            dir_up = np.array([0, c2[1]-c1[1], 0])
+            dir_rt = np.array([0, 0, c2[2]-c1[2]])
+            extent = (c1[2], c2[2], c1[1], c2[1])
+        aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)
+        samples_dir_up = np.round(aspect * samples)
+        self._world_space = (start[:, None, None] +
+                            dir_rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
+                            dir_up[:, None, None] * np.linspace(0, 1, samples_dir_up)[None, None, :])
+        self.extent = extent
+        self._tfm = None
+        self._voxel_space = None
+
+    def get_physical(self, tfm):
+        """Returns an array of physical space co-ords for this slice. Will be cached."""
+        if not np.array_equal(tfm, self._tfm):
+            old_sz = self._world_space.shape
+            new_sz = np.prod(self._world_space.shape[1:])
+            scale = np.mat(tfm[0:3, 0:3]).I
+            offset = np.dot(-scale, tfm[0:3, 3]).T
+            isl = np.dot(scale, self._world_space.reshape([3, new_sz])) + offset[:]
+            isl = np.array(isl).reshape(old_sz)
+            self._voxel_space = isl
+            self._tfm = tfm
+        return self._voxel_space
 
 def samplePoint(img, point, order=1):
     scale = np.mat(img.get_affine()[0:3, 0:3]).I
@@ -60,14 +81,8 @@ def samplePoint(img, point, order=1):
     return ndinterp.map_coordinates(img.get_data(), s_point, order=order)
 
 def sampleSlice(img, sl, order=1):
-    old_sz = sl.shape
-    new_sz = np.prod(sl.shape[1:])
-    sl = sl.reshape([3, new_sz])
-    scale = np.mat(img.get_affine()[0:3, 0:3]).I
-    offset = np.dot(-scale,img.get_affine()[0:3, 3]).T
-    isl = np.dot(scale, sl) + offset[:]
-    isl = np.array(isl).reshape(old_sz)
-    return ndinterp.map_coordinates(img.get_data(), isl, order=order).T
+    physical = sl.get_physical(img.get_affine())
+    return ndinterp.map_coordinates(img.get_data(), physical, order=order).T
 
 def applyCM(data, cm_name, clims):
     norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])

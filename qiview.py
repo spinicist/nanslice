@@ -11,7 +11,7 @@ found in the root directory of the project.
 import sys
 import time
 import argparse
-import qicommon
+import qicommon as qi
 import numpy as np
 import nibabel as nib
 import matplotlib
@@ -54,7 +54,7 @@ class QICanvas(FigureCanvas):
         self.img_color = nib.load(args.color_image)
         self.img_alpha = nib.load(args.alpha_image)
 
-        self.corners = qicommon.find_bbox(self.img_mask)
+        self.corners = qi.find_bbox(self.img_mask)
         self.cursor = (self.corners[0] + self.corners[1]) / 2
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
@@ -64,18 +64,18 @@ class QICanvas(FigureCanvas):
         t0 = time.time()
         directions = ('x', 'y', 'z')
         for i in range(3):
-            (this_slice, sl_extent) = qicommon.setupSlice(self.corners[0], self.corners[1], directions[i], 
-                                                          self.cursor[i], self.args.samples, absolute=True)
-            sl_img_mask = qicommon.sampleSlice(self.img_mask, this_slice, self.args.interp_order)
-            sl_base = qicommon.applyCM(qicommon.sampleSlice(self.img_base, this_slice, self.args.interp_order),
+            this_slice = qi.Slice(self.corners[0], self.corners[1], directions[i],
+                                  self.cursor[i], self.args.samples, absolute=True)
+            sl_img_mask = qi.sampleSlice(self.img_mask, this_slice, self.args.interp_order)
+            sl_base = qi.applyCM(qi.sampleSlice(self.img_base, this_slice, self.args.interp_order),
                                        'gray', self.base_window)
-            sl_color = qicommon.applyCM(qicommon.sampleSlice(self.img_color, this_slice, self.args.interp_order)*self.args.color_scale,
+            sl_color = qi.applyCM(qi.sampleSlice(self.img_color, this_slice, self.args.interp_order)*self.args.color_scale,
                                         self.args.color_map, self.args.color_lims)
-            sl_alpha = qicommon.scaleAlpha(qicommon.sampleSlice(self.img_alpha, this_slice, self.args.interp_order), self.args.alpha_lims)
-            sl_blend = qicommon.mask(qicommon.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
+            sl_alpha = qi.scaleAlpha(qi.sampleSlice(self.img_alpha, this_slice, self.args.interp_order), self.args.alpha_lims)
+            sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
             self.axes[i].cla()
-            self.axes[i].imshow(sl_blend, origin='lower', extent=sl_extent, interpolation=self.args.interp)
-            self.axes[i].contour(sl_alpha, (self.args.contour,), origin='lower', extent=sl_extent)
+            self.axes[i].imshow(sl_blend, origin='lower', extent=this_slice.extent, interpolation=self.args.interp)
+            self.axes[i].contour(sl_alpha, (self.args.contour,), origin='lower', extent=this_slice.extent)
             self.axes[i].axis('off')
             self.axes[i].axis('image')
         
@@ -87,7 +87,7 @@ class QICanvas(FigureCanvas):
         self.axes[2].axhline(y=self.cursor[1], color='g')
         self.axes[2].axvline(x=self.cursor[0], color='g')
 
-        qicommon.alphabar(self.cbar_axis, 
+        qi.alphabar(self.cbar_axis, 
                           self.args.color_map, self.args.color_lims, self.args.color_label,
                           self.args.alpha_lims, self.args.alpha_label)
         t1 = time.time()
@@ -108,8 +108,8 @@ class QICanvas(FigureCanvas):
                 self.cursor[0] = event.xdata
                 self.cursor[1] = event.ydata
                 self.update_figure()
-            color_val = qicommon.samplePoint(self.img_color, self.cursor)
-            alpha_val = qicommon.samplePoint(self.img_alpha, self.cursor)
+            color_val = qi.samplePoint(self.img_color, self.cursor)
+            alpha_val = qi.samplePoint(self.img_alpha, self.cursor)
             msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
