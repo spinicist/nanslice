@@ -49,9 +49,9 @@ class Slice:
                 start[0] = pos
             else:
                 start[0] = c1[0]*(1-pos)+c2[0]*pos
-            dir_up = np.array([0, c2[1]-c1[1], 0])
-            dir_rt = np.array([0, 0, c2[2]-c1[2]])
-            extent = (c1[2], c2[2], c1[1], c2[1])
+            dir_up = np.array([0, 0, c2[2]-c1[2]])
+            dir_rt = np.array([0, c2[1]-c1[1], 0])
+            extent = (c1[1], c2[1], c1[2], c2[2])
         aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)
         samples_dir_up = np.round(aspect * samples)
         self._world_space = (start[:, None, None] +

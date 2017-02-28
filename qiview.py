@@ -118,8 +118,8 @@ class QICanvas(FigureCanvas):
                 vline.remove()
             for hline in self._hlines:
                 hline.remove()
-        self._hlines[0] = self.axes[0].axhline(y=self.cursor[1], color='g')
-        self._vlines[0] = self.axes[0].axvline(x=self.cursor[2], color='g')
+        self._hlines[0] = self.axes[0].axhline(y=self.cursor[2], color='g')
+        self._vlines[0] = self.axes[0].axvline(x=self.cursor[1], color='g')
         self._hlines[1] = self.axes[1].axhline(y=self.cursor[2], color='g')
         self._vlines[1] = self.axes[1].axvline(x=self.cursor[0], color='g')
         self._hlines[2] = self.axes[2].axhline(y=self.cursor[1], color='g')
@@ -130,8 +130,8 @@ class QICanvas(FigureCanvas):
     def handle_mouse_event(self, event):
         if event.button == 1:
             if event.inaxes == self.axes[0]:
-                self.cursor[1] = event.ydata
-                self.cursor[2] = event.xdata
+                self.cursor[1] = event.xdata
+                self.cursor[2] = event.ydata
                 self.update_figure((False, True, True))
             elif event.inaxes == self.axes[1]:
                 self.cursor[0] = event.xdata
