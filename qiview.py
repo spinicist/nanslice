@@ -38,6 +38,7 @@ class QICanvas(FigureCanvas):
         self.axes = []
         for i in range(3):
             self.axes.append(self.fig.add_subplot(gs1[i], facecolor='black'))
+
         self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
 
         FigureCanvas.__init__(self, self.fig)
@@ -58,45 +59,63 @@ class QICanvas(FigureCanvas):
         self.cursor = (self.corners[0] + self.corners[1]) / 2
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
-        self._cached_slices = [None, None, None]
-        self._cached_images = [None, None, None]
+
+        qi.alphabar(self.cbar_axis, 
+                    self.args.color_map, self.args.color_lims, self.args.color_label,
+                    self.args.alpha_lims, self.args.alpha_label)
+
+        self._slices = [None, None, None]
+        self._images = [None, None, None]
+        self._contours = [None, None, None]
+        self._hlines = [None, None, None]
+        self._vlines = [None, None, None]
         self.update_figure((True, True, True))
 
     def update_figure(self, which):
-        t0 = time.time()
         directions = ('x', 'y', 'z')
         for i in range(3):
             if which[i]:
-                self._cached_slices[i] = qi.Slice(self.corners[0], self.corners[1], directions[i],
-                                                  self.cursor[i], self.args.samples, absolute=True)
-                sl_img_mask = qi.sampleSlice(self.img_mask, self._cached_slices[i], self.args.interp_order)
-                sl_base = qi.applyCM(qi.sampleSlice(self.img_base, self._cached_slices[i], self.args.interp_order),
-                                        'gray', self.base_window)
-                sl_color = qi.applyCM(qi.sampleSlice(self.img_color, self._cached_slices[i], self.args.interp_order)*self.args.color_scale,
-                                            self.args.color_map, self.args.color_lims)
-                sl_alpha = qi.scaleAlpha(qi.sampleSlice(self.img_alpha, self._cached_slices[i], self.args.interp_order), self.args.alpha_lims)
-                sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
-                self._cached_images[i] = (sl_blend, sl_alpha)
-
-            self.axes[i].cla()
-            self.axes[i].imshow(self._cached_images[i][0], origin='lower', extent=self._cached_slices[i].extent, interpolation=self.args.interp)
-            self.axes[i].contour(self._cached_images[i][1], (self.args.contour,), origin='lower', extent=self._cached_slices[i].extent)
-            self.axes[i].axis('off')
-            self.axes[i].axis('image')
+                self._slices[i] = qi.Slice(self.corners[0], self.corners[1], directions[i],
+                                           self.cursor[i], self.args.samples, absolute=True)
+                sl_mask = qi.sampleSlice(self.img_mask, self._slices[i], self.args.interp_order)
+                sl_base = qi.applyCM(qi.sampleSlice(self.img_base,
+                                                    self._slices[i],
+                                                    self.args.interp_order),
+                                     'gray', self.base_window)
+                sl_color = qi.applyCM(qi.sampleSlice(self.img_color,
+                                                     self._slices[i],
+                                                     self.args.interp_order)*self.args.color_scale,
+                                      self.args.color_map, self.args.color_lims)
+                sl_alpha = qi.scaleAlpha(qi.sampleSlice(self.img_alpha,
+                                                        self._slices[i],
+                                                        self.args.interp_order),
+                                         self.args.alpha_lims)
+                sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_mask)
+                if self._images[i] is None:
+                    self._images[i] = self.axes[i].imshow(sl_blend, origin='lower',
+                                                          extent=self._slices[i].extent,
+                                                          interpolation=self.args.interp)
+                else:
+                    self._images[i].set_data(sl_blend)
+                if self._contours[i] is not None:
+                    for coll in self._contours[i].collections:
+                        coll.remove()
+                self._contours[i] = self.axes[i].contour(sl_alpha, (self.args.contour,),
+                                                         origin='lower',
+                                                         extent=self._slices[i].extent)
 
         # Do these individually now because I'm not clever enough to set them in the loop
-        self.axes[0].axhline(y=self.cursor[1], color='g')
-        self.axes[0].axvline(x=self.cursor[2], color='g')
-        self.axes[1].axhline(y=self.cursor[2], color='g')
-        self.axes[1].axvline(x=self.cursor[0], color='g')
-        self.axes[2].axhline(y=self.cursor[1], color='g')
-        self.axes[2].axvline(x=self.cursor[0], color='g')
-
-        qi.alphabar(self.cbar_axis, 
-                          self.args.color_map, self.args.color_lims, self.args.color_label,
-                          self.args.alpha_lims, self.args.alpha_label)
-        t1 = time.time()
-        print('Update time: ', (t1 - t0)*1000, 'ms')
+        if self._vlines[0] is not None:
+            for vline in self._vlines:
+                vline.remove()
+            for hline in self._hlines:
+                hline.remove()
+        self._hlines[0] = self.axes[0].axhline(y=self.cursor[1], color='g')
+        self._vlines[0] = self.axes[0].axvline(x=self.cursor[2], color='g')
+        self._hlines[1] = self.axes[1].axhline(y=self.cursor[2], color='g')
+        self._vlines[1] = self.axes[1].axvline(x=self.cursor[0], color='g')
+        self._hlines[2] = self.axes[2].axhline(y=self.cursor[1], color='g')
+        self._vlines[2] = self.axes[2].axvline(x=self.cursor[0], color='g')
         self.draw()
 
     def handle_mouse_event(self, event):
