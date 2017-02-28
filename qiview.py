@@ -69,6 +69,7 @@ class QICanvas(FigureCanvas):
         self._contours = [None, None, None]
         self._hlines = [None, None, None]
         self._vlines = [None, None, None]
+        self._first_time = True
         self.update_figure((True, True, True))
 
     def update_figure(self, which):
@@ -91,7 +92,9 @@ class QICanvas(FigureCanvas):
                                                         self.args.interp_order),
                                          self.args.alpha_lims)
                 sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_mask)
-                if self._images[i] is None:
+
+                # Draw image
+                if self._first_time:
                     self._images[i] = self.axes[i].imshow(sl_blend, origin='lower',
                                                           extent=self._slices[i].extent,
                                                           interpolation=self.args.interp)
@@ -100,7 +103,9 @@ class QICanvas(FigureCanvas):
                     self.axes[i].axis('image')
                 else:
                     self._images[i].set_data(sl_blend)
-                if self._contours[i] is not None:
+
+                # Draw contours. For contours remove collection manually
+                if not self._first_time:
                     for coll in self._contours[i].collections:
                         coll.remove()
                 self._contours[i] = self.axes[i].contour(sl_alpha, (self.args.contour,),
@@ -108,7 +113,7 @@ class QICanvas(FigureCanvas):
                                                          extent=self._slices[i].extent)
 
         # Do these individually now because I'm not clever enough to set them in the loop
-        if self._vlines[0] is not None:
+        if not self._first_time:
             for vline in self._vlines:
                 vline.remove()
             for hline in self._hlines:
@@ -119,6 +124,7 @@ class QICanvas(FigureCanvas):
         self._vlines[1] = self.axes[1].axvline(x=self.cursor[0], color='g')
         self._hlines[2] = self.axes[2].axhline(y=self.cursor[1], color='g')
         self._vlines[2] = self.axes[2].axvline(x=self.cursor[0], color='g')
+        self._first_time = False
         self.draw()
 
     def handle_mouse_event(self, event):
