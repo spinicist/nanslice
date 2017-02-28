@@ -58,27 +58,32 @@ class QICanvas(FigureCanvas):
         self.cursor = (self.corners[0] + self.corners[1]) / 2
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
-        self.update_figure()
+        self._cached_slices = [None, None, None]
+        self._cached_images = [None, None, None]
+        self.update_figure((True, True, True))
 
-    def update_figure(self):
+    def update_figure(self, which):
         t0 = time.time()
         directions = ('x', 'y', 'z')
         for i in range(3):
-            this_slice = qi.Slice(self.corners[0], self.corners[1], directions[i],
-                                  self.cursor[i], self.args.samples, absolute=True)
-            sl_img_mask = qi.sampleSlice(self.img_mask, this_slice, self.args.interp_order)
-            sl_base = qi.applyCM(qi.sampleSlice(self.img_base, this_slice, self.args.interp_order),
-                                       'gray', self.base_window)
-            sl_color = qi.applyCM(qi.sampleSlice(self.img_color, this_slice, self.args.interp_order)*self.args.color_scale,
-                                        self.args.color_map, self.args.color_lims)
-            sl_alpha = qi.scaleAlpha(qi.sampleSlice(self.img_alpha, this_slice, self.args.interp_order), self.args.alpha_lims)
-            sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
+            if which[i]:
+                self._cached_slices[i] = qi.Slice(self.corners[0], self.corners[1], directions[i],
+                                                  self.cursor[i], self.args.samples, absolute=True)
+                sl_img_mask = qi.sampleSlice(self.img_mask, self._cached_slices[i], self.args.interp_order)
+                sl_base = qi.applyCM(qi.sampleSlice(self.img_base, self._cached_slices[i], self.args.interp_order),
+                                        'gray', self.base_window)
+                sl_color = qi.applyCM(qi.sampleSlice(self.img_color, self._cached_slices[i], self.args.interp_order)*self.args.color_scale,
+                                            self.args.color_map, self.args.color_lims)
+                sl_alpha = qi.scaleAlpha(qi.sampleSlice(self.img_alpha, self._cached_slices[i], self.args.interp_order), self.args.alpha_lims)
+                sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_img_mask)
+                self._cached_images[i] = (sl_blend, sl_alpha)
+
             self.axes[i].cla()
-            self.axes[i].imshow(sl_blend, origin='lower', extent=this_slice.extent, interpolation=self.args.interp)
-            self.axes[i].contour(sl_alpha, (self.args.contour,), origin='lower', extent=this_slice.extent)
+            self.axes[i].imshow(self._cached_images[i][0], origin='lower', extent=self._cached_slices[i].extent, interpolation=self.args.interp)
+            self.axes[i].contour(self._cached_images[i][1], (self.args.contour,), origin='lower', extent=self._cached_slices[i].extent)
             self.axes[i].axis('off')
             self.axes[i].axis('image')
-        
+
         # Do these individually now because I'm not clever enough to set them in the loop
         self.axes[0].axhline(y=self.cursor[1], color='g')
         self.axes[0].axvline(x=self.cursor[2], color='g')
@@ -99,15 +104,15 @@ class QICanvas(FigureCanvas):
             if event.inaxes == self.axes[0]:
                 self.cursor[1] = event.ydata
                 self.cursor[2] = event.xdata
-                self.update_figure()
+                self.update_figure((False, True, True))
             elif event.inaxes == self.axes[1]:
                 self.cursor[0] = event.xdata
                 self.cursor[2] = event.ydata
-                self.update_figure()
+                self.update_figure((True, False, True))
             elif event.inaxes == self.axes[2]:
                 self.cursor[0] = event.xdata
                 self.cursor[1] = event.ydata
-                self.update_figure()
+                self.update_figure((True, True, False))
             color_val = qi.samplePoint(self.img_color, self.cursor)
             alpha_val = qi.samplePoint(self.img_alpha, self.cursor)
             msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
