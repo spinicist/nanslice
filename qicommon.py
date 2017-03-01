@@ -82,7 +82,7 @@ def samplePoint(img, point, order=1):
 
 def sampleSlice(img, sl, order=1):
     physical = sl.get_physical(img.get_affine())
-    return ndinterp.map_coordinates(img.get_data(), physical, order=order).T
+    return ndinterp.map_coordinates(img.get_data().squeeze(), physical, order=order).T
 
 def applyCM(data, cm_name, clims):
     norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])

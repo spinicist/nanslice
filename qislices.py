@@ -54,28 +54,28 @@ slice_pos = np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)
 gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
 gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
 gs2 = gridspec.GridSpec(1, 1)
-gs2.update(left = 0.08, right = 0.92, bottom = 0.08, top = 0.16, wspace=0.1, hspace=0.1)
+gs2.update(left = 0.08, right = 0.92, bottom = 0.08, top = 0.15, wspace=0.1, hspace=0.1)
 
 f = plt.figure(facecolor='black')
 
 print('*** Slicing')
 for s in range(0, slice_total):
-    ax = plt.subplot(gs1[s], axisbg='black')
+    ax = plt.subplot(gs1[s], facecolor='black')
 
-    (sl, slice_extent) = qicommon.setupSlice(corner1, corner2, args.slice_axis, slice_pos[s], 128)
+    sl = qicommon.Slice(corner1, corner2, args.slice_axis, slice_pos[s], 128)
     sl_mask = qicommon.sampleSlice(img_mask, sl, order=1)
     sl_base = qicommon.applyCM(qicommon.sampleSlice(img_base, sl), 'gray', window)
     sl_color = qicommon.applyCM(args.color_scale*qicommon.sampleSlice(img_color, sl), args.color_map, args.color_lims)
     sl_alpha = qicommon.sampleSlice(img_alpha, sl)
     sl_blend = qicommon.mask(qicommon.blend(sl_base, sl_color, qicommon.scaleAlpha(sl_alpha, args.alpha_lims)), sl_mask)
     
-    ax.imshow(sl_blend, origin='lower', extent = slice_extent, interpolation='hanning')
+    ax.imshow(sl_blend, origin='lower', extent = sl.extent, interpolation='hanning')
     ax.axis('off')
     if (args.contour > 0):
-        ax.contour(sl_alpha, (args.contour,), origin='lower', extent = slice_extent)
+        ax.contour(sl_alpha, (args.contour,), origin='lower', extent = sl.extent)
 
 print('*** Saving')
-ax = plt.subplot(gs2[0], axisbg='black')
+ax = plt.subplot(gs2[0], facecolor='black')
 qicommon.alphabar(ax, args.color_map, args.color_lims, args.color_label , args.alpha_lims, args.alpha_label)
 print('Writing file: ', args.output)
 f.savefig(args.output ,facecolor=f.get_facecolor(), edgecolor='none')
