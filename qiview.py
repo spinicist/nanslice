@@ -78,20 +78,20 @@ class QICanvas(FigureCanvas):
             if which[i]:
                 self._slices[i] = qi.Slice(self.corners[0], self.corners[1], directions[i],
                                            self.cursor[i], self.args.samples, absolute=True)
-                sl_mask = qi.sampleSlice(self.img_mask, self._slices[i], self.args.interp_order)
-                sl_base = qi.applyCM(qi.sampleSlice(self.img_base,
-                                                    self._slices[i],
-                                                    self.args.interp_order),
+                sl_mask = qi.sample_slice(self.img_mask, self._slices[i], self.args.interp_order)
+                sl_base = qi.apply_color(qi.sample_slice(self.img_base,
+                                                         self._slices[i],
+                                                         self.args.interp_order),
                                      'gray', self.base_window)
-                sl_color = qi.applyCM(qi.sampleSlice(self.img_color,
-                                                     self._slices[i],
-                                                     self.args.interp_order)*self.args.color_scale,
+                sl_color = qi.apply_color(qi.sample_slice(self.img_color,
+                                                          self._slices[i],
+                                                          self.args.interp_order)*self.args.color_scale,
                                       self.args.color_map, self.args.color_lims)
-                sl_alpha = qi.scaleAlpha(qi.sampleSlice(self.img_alpha,
-                                                        self._slices[i],
-                                                        self.args.interp_order),
+                sl_alpha = qi.scale_clip(qi.sample_slice(self.img_alpha,
+                                                         self._slices[i],
+                                                         self.args.interp_order),
                                          self.args.alpha_lims)
-                sl_blend = qi.mask(qi.blend(sl_base, sl_color, sl_alpha), sl_mask)
+                sl_blend = qi.mask_img(qi.blend_imgs(sl_base, sl_color, sl_alpha), sl_mask)
 
                 # Draw image
                 if self._first_time:
@@ -141,8 +141,8 @@ class QICanvas(FigureCanvas):
                 self.cursor[0] = event.xdata
                 self.cursor[1] = event.ydata
                 self.update_figure((True, True, False))
-            color_val = qi.samplePoint(self.img_color, self.cursor)
-            alpha_val = qi.samplePoint(self.img_alpha, self.cursor)
+            color_val = qi.sample_point(self.img_color, self.cursor)
+            alpha_val = qi.sample_point(self.img_alpha, self.cursor)
             msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)

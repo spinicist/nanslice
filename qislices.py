@@ -9,8 +9,8 @@ import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import qicommon
- 
+import qicommon as qi
+
 parser = argparse.ArgumentParser(description='Dual-code a set of slices through an image.')
 parser.add_argument('base_image',help='Base (structural image)',type=str)
 parser.add_argument('mask_image',help='Mask image',type=str)
@@ -45,7 +45,7 @@ img_alpha = nib.load(args.alpha_image)
 print('*** Setup')
 window = np.percentile(img_base.get_data(), args.window)
 print('Base image window: ', window[0], ' - ', window[1])
-(corner1, corner2) = qicommon.find_bbox(img_mask)
+(corner1, corner2) = qi.find_bbox(img_mask)
 print('Bounding box: ', corner1, ' -> ', corner2)
 slice_total = args.slice_rows*args.slice_cols
 print(slice_total, ' slices in ', args.slice_rows, ' rows and ', args.slice_cols, ' columns')
@@ -62,21 +62,25 @@ print('*** Slicing')
 for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
 
-    sl = qicommon.Slice(corner1, corner2, args.slice_axis, slice_pos[s], 128)
-    sl_mask = qicommon.sampleSlice(img_mask, sl, order=1)
-    sl_base = qicommon.applyCM(qicommon.sampleSlice(img_base, sl), 'gray', window)
-    sl_color = qicommon.applyCM(args.color_scale*qicommon.sampleSlice(img_color, sl), args.color_map, args.color_lims)
-    sl_alpha = qicommon.sampleSlice(img_alpha, sl)
-    sl_blend = qicommon.mask(qicommon.blend(sl_base, sl_color, qicommon.scaleAlpha(sl_alpha, args.alpha_lims)), sl_mask)
-    
-    ax.imshow(sl_blend, origin='lower', extent = sl.extent, interpolation='hanning')
+    sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], 128)
+    sl_mask = qi.sample_slice(img_mask, sl, order=1)
+    sl_base = qi.apply_color(qi.sample_slice(img_base, sl), 'gray', window)
+    sl_color = qi.apply_color(args.color_scale*qi.sample_slice(img_color, sl),
+                              args.color_map, args.color_lims)
+    sl_alpha = qi.sample_slice(img_alpha, sl)
+    sl_blend = qi.blend_imgs(sl_base, sl_color,
+                             qi.scale_clip(sl_alpha, args.alpha_lims))
+    sl_mask = qi.mask_img(sl_blend, sl_mask)
+
+    ax.imshow(sl_blend, origin='lower', extent=sl.extent, interpolation='hanning')
     ax.axis('off')
-    if (args.contour > 0):
-        ax.contour(sl_alpha, (args.contour,), origin='lower', extent = sl.extent)
+    if args.contour > 0:
+        ax.contour(sl_alpha, (args.contour,), origin='lower', extent=sl.extent)
 
 print('*** Saving')
-ax = plt.subplot(gs2[0], facecolor='black')
-qicommon.alphabar(ax, args.color_map, args.color_lims, args.color_label , args.alpha_lims, args.alpha_label)
+axes = plt.subplot(gs2[0], facecolor='black')
+qi.alphabar(axes, args.color_map, args.color_lims, args.color_label,
+            args.alpha_lims, args.alpha_label)
 print('Writing file: ', args.output)
-f.savefig(args.output ,facecolor=f.get_facecolor(), edgecolor='none')
+f.savefig(args.output, facecolor=f.get_facecolor(), edgecolor='none')
 plt.close(f)
