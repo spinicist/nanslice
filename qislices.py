@@ -3,35 +3,22 @@
 
 # This code is subject to the terms of the Mozilla Public License. A copy can be
 # found in the root directory of the project.
-import os
-import argparse
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import qicommon as qi
 
-parser = argparse.ArgumentParser(description='Dual-code a set of slices through an image.')
-parser.add_argument('base_image',help='Base (structural image)',type=str)
-parser.add_argument('mask_image',help='Mask image',type=str)
-parser.add_argument('color_image',help='Image for color-coding of overlay',type=str)
-parser.add_argument('alpha_image',help='Image for transparency-coding of overlay',type=str)
+# pylint insists anything at module level is a constant, so disable the stupidity
+# pylint: disable=C0103
+parser = qi.common_args()
 parser.add_argument('output',help='Output image name',type=str)
-parser.add_argument('--window', nargs=2, default=(1,99), help='Specify base image window (in percentiles)')
-parser.add_argument('--alpha_lims', nargs=2,default=(0.5,1.0), help='Alpha/transparency window, default=0.5 1.0')
-parser.add_argument('--alpha_label', type=str, default='1-p', help='Label for alpha/transparency axis')
-parser.add_argument('--contour',help='Specify value for alpha image contour, default=0.95',type=float,default=0.95)
-parser.add_argument('--color_lims', type=float, nargs=2, default=(-1,1), help='Colormap window, default=-1 1')
-parser.add_argument('--color_scale', type=float, default=1, help='Multiply color image by value, default=1')
-parser.add_argument('--color_map', type=str, default='RdYlBu_r', help='Colormap to use from Matplotlib, default = RdYlBu_r')
-parser.add_argument('--color_label', type=str, default='% Change', help='Label for color axis')
 parser.add_argument('--slice_rows', type=int, default=4, help='Number of rows of slices')
 parser.add_argument('--slice_cols', type=int, default=5, help='Number of columns of slices')
 parser.add_argument('--slice_axis', type=str, default='z', help='Axis to slice along (x/y/z)')
 parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1,0.9), help='Slice between these limits along the axis, default=0.1 0.9')
-
 args = parser.parse_args()
- 
+
 print('*** Loading files')
 print('Loading: ', args.base_image)
 img_base = nib.load(args.base_image)
@@ -54,7 +41,7 @@ slice_pos = np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)
 gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
 gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
 gs2 = gridspec.GridSpec(1, 1)
-gs2.update(left = 0.08, right = 0.92, bottom = 0.08, top = 0.15, wspace=0.1, hspace=0.1)
+gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
 
 f = plt.figure(facecolor='black')
 
@@ -63,16 +50,17 @@ for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
     print('Slice pos ', slice_pos[s])
     sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples)
-    sl_mask = qi.sample_slice(img_mask, sl, order=1)
-    sl_base = qi.apply_color(qi.sample_slice(img_base, sl), 'gray', window)
-    sl_color = qi.apply_color(args.color_scale*qi.sample_slice(img_color, sl),
+    sl_mask = qi.sample_slice(img_mask, sl, args.interp_order)
+    sl_base = qi.apply_color(qi.sample_slice(img_base, sl, order=args.interp_order), 'gray', window)
+    sl_color = qi.apply_color(args.color_scale *
+                              qi.sample_slice(img_color, sl, order=args.interp_order),
                               args.color_map, args.color_lims)
-    sl_alpha = qi.sample_slice(img_alpha, sl)
+    sl_alpha = qi.sample_slice(img_alpha, sl, order=args.interp_order)
     sl_blend = qi.blend_imgs(sl_base, sl_color,
                              qi.scale_clip(sl_alpha, args.alpha_lims))
     sl_masked = qi.mask_img(sl_blend, sl_mask)
 
-    ax.imshow(sl_masked, origin='lower', extent=sl.extent, interpolation='hanning')
+    ax.imshow(sl_masked, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
     if args.contour > 0:
         ax.contour(sl_alpha, (args.contour,), origin='lower', extent=sl.extent)
