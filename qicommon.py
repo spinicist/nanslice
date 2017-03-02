@@ -100,7 +100,6 @@ def alphabar(axes, cm_name, clims, clabel, alims, alabel, black_backg=True):
     alpha = np.tile(np.linspace(0, 1, asteps), [csteps, 1]).T
     backg = np.ones((asteps, csteps, 3))
     acmap = blend_imgs(backg, color, alpha)
-
     axes.imshow(acmap, origin='lower', interpolation='hanning',
                 extent=(clims[0], clims[1], alims[0], alims[1]),
                 aspect='auto')
@@ -138,7 +137,7 @@ def common_args():
     parser.add_argument('mask_image', help='Mask image', type=str)
     parser.add_argument('color_image', help='Image for color-coding of overlay', type=str)
     parser.add_argument('alpha_image', help='Image for transparency-coding of overlay', type=str)
-    parser.add_argument('--window', nargs=2, default=(1, 99),
+    parser.add_argument('--window', type=float, nargs=2, default=(1, 99),
                         help='Specify base image window (in percentiles)')
     parser.add_argument('--samples', type=int, default=128,
                         help='Number of samples for slicing, default=128')
@@ -146,7 +145,7 @@ def common_args():
                         help='Display interpolation mode, default=hanning')
     parser.add_argument('--interp_order', type=int, default=1,
                         help='Data interpolation order, default=1')
-    parser.add_argument('--alpha_lims', nargs=2, default=(0.5, 1.0),
+    parser.add_argument('--alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
                         help='Alpha/transparency window, default=0.5 1.0')
     parser.add_argument('--alpha_label', type=str, default='1-p',
                         help='Label for alpha/transparency axis')
