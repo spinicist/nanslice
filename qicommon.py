@@ -36,7 +36,7 @@ class Slice:
         if absolute:
             start[ind_0] = pos
         else:
-            start[2] = c1[ind_0]*(1-pos) + c2[ind_0]*pos
+            start[ind_0] = c1[ind_0]*(1-pos) + c2[ind_0]*pos
         dir_rt = np.zeros((3,))
         dir_up = np.zeros((3,))
 
