@@ -27,37 +27,28 @@ def find_bbox(img):
 class Slice:
     """A very simple slice class. Stores physical & voxel space co-ords"""
     def __init__(self, c1, c2, axis, pos, samples, absolute=False):
+        axis_map = {'x':0, 'y':1, 'z':2}
+        ind_0 = axis_map[axis]
+        ind_1 = (ind_0 + 1) % 3
+        ind_2 = (ind_0 + 2) % 3
         start = np.copy(c1)
-        if axis == 'z':
-            if absolute:
-                start[2] = pos
-            else:
-                start[2] = c1[2]*(1-pos)+c2[2]*pos
-            dir_up = np.array([0, c2[1]-c1[1], 0])
-            dir_rt = np.array([c2[0]-c1[0], 0, 0])
-            extent = (c1[0], c2[0], c1[1], c2[1])
-        elif axis == 'y':
-            if absolute:
-                start[1] = pos
-            else:
-                start[1] = c1[1]*(1-pos)+c2[1]*pos
-            dir_up = np.array([0, 0, c2[2]-c1[2]])
-            dir_rt = np.array([c2[0]-c1[0], 0, 0])
-            extent = (c1[0], c2[0], c1[2], c2[2])
-        elif axis == 'x':
-            if absolute:
-                start[0] = pos
-            else:
-                start[0] = c1[0]*(1-pos)+c2[0]*pos
-            dir_up = np.array([0, 0, c2[2]-c1[2]])
-            dir_rt = np.array([0, c2[1]-c1[1], 0])
-            extent = (c1[1], c2[1], c1[2], c2[2])
+        diag = c2 - c1
+        if absolute:
+            start[ind_0] = pos
+        else:
+            start[2] = c1[ind_0]*(1-pos) + c2[ind_0]*pos
+        dir_rt = np.zeros((3,))
+        dir_up = np.zeros((3,))
+
+        dir_rt[ind_1] = diag[ind_1]
+        dir_up[ind_2] = diag[ind_2]
         aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)
         samples_up = np.round(aspect * samples)
         self._world_space = (start[:, None, None] +
                              dir_rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
                              dir_up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
-        self.extent = extent
+        # This is the extent parameter for matplotlib
+        self.extent = (c1[ind_1], c2[ind_1], c1[ind_2], c2[ind_2])
         self._tfm = None
         self._voxel_space = None
 

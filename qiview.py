@@ -60,7 +60,7 @@ class QICanvas(FigureCanvas):
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
 
-        qi.alphabar(self.cbar_axis, 
+        qi.alphabar(self.cbar_axis,
                     self.args.color_map, self.args.color_lims, self.args.color_label,
                     self.args.alpha_lims, self.args.alpha_label)
 
@@ -70,23 +70,32 @@ class QICanvas(FigureCanvas):
         self._hlines = [None, None, None]
         self._vlines = [None, None, None]
         self._first_time = True
-        self.update_figure((True, True, True))
+        self.update_figure()
 
-    def update_figure(self, which):
+    def update_figure(self, hold=None):
+        """Updates the three axis views"""
+        #t0 = time.time()
         directions = ('x', 'y', 'z')
+        # Do these individually now because I'm not clever enough to set them in the loop
+        if not self._first_time:
+            for vline in self._vlines:
+                vline.remove()
+            for hline in self._hlines:
+                hline.remove()
         for i in range(3):
-            if which[i]:
+            if i != hold:
                 self._slices[i] = qi.Slice(self.corners[0], self.corners[1], directions[i],
                                            self.cursor[i], self.args.samples, absolute=True)
                 sl_mask = qi.sample_slice(self.img_mask, self._slices[i], self.args.interp_order)
                 sl_base = qi.apply_color(qi.sample_slice(self.img_base,
                                                          self._slices[i],
                                                          self.args.interp_order),
-                                     'gray', self.base_window)
+                                         'gray', self.base_window)
                 sl_color = qi.apply_color(qi.sample_slice(self.img_color,
                                                           self._slices[i],
                                                           self.args.interp_order)*self.args.color_scale,
-                                      self.args.color_map, self.args.color_lims)
+                                          self.args.color_map,
+                                          self.args.color_lims)
                 sl_alpha = qi.scale_clip(qi.sample_slice(self.img_alpha,
                                                          self._slices[i],
                                                          self.args.interp_order),
@@ -111,39 +120,24 @@ class QICanvas(FigureCanvas):
                 self._contours[i] = self.axes[i].contour(sl_alpha, (self.args.contour,),
                                                          origin='lower',
                                                          extent=self._slices[i].extent)
-
-        # Do these individually now because I'm not clever enough to set them in the loop
-        if not self._first_time:
-            for vline in self._vlines:
-                vline.remove()
-            for hline in self._hlines:
-                hline.remove()
-        self._hlines[0] = self.axes[0].axhline(y=self.cursor[2], color='g')
-        self._vlines[0] = self.axes[0].axvline(x=self.cursor[1], color='g')
-        self._hlines[1] = self.axes[1].axhline(y=self.cursor[2], color='g')
-        self._vlines[1] = self.axes[1].axvline(x=self.cursor[0], color='g')
-        self._hlines[2] = self.axes[2].axhline(y=self.cursor[1], color='g')
-        self._vlines[2] = self.axes[2].axvline(x=self.cursor[0], color='g')
+            self._vlines[i] = self.axes[i].axvline(x=self.cursor[(i+1)%3], color='g')
+            self._hlines[i] = self.axes[i].axhline(y=self.cursor[(i+2)%3], color='g')
         self._first_time = False
+        #print('Update time:', (time.time() - t0)*1000, 'ms')
         self.draw()
 
     def handle_mouse_event(self, event):
         if event.button == 1:
-            if event.inaxes == self.axes[0]:
-                self.cursor[1] = event.xdata
-                self.cursor[2] = event.ydata
-                self.update_figure((False, True, True))
-            elif event.inaxes == self.axes[1]:
-                self.cursor[0] = event.xdata
-                self.cursor[2] = event.ydata
-                self.update_figure((True, False, True))
-            elif event.inaxes == self.axes[2]:
-                self.cursor[0] = event.xdata
-                self.cursor[1] = event.ydata
-                self.update_figure((True, True, False))
+            for i in range(3):
+                if event.inaxes == self.axes[i]:
+                    self.cursor[(i+1)%3] = event.xdata
+                    self.cursor[(i+2)%3] = event.ydata
+                    self.update_figure(hold=i)
             color_val = qi.sample_point(self.img_color, self.cursor)
             alpha_val = qi.sample_point(self.img_alpha, self.cursor)
-            msg = "Cursor: " + str(self.cursor) + " Value: " + str(color_val[0]) + " Alpha: " + str(alpha_val[0])
+            msg = "Cursor: " + str(self.cursor) +\
+                  " Value: " + str(color_val[0]) +\
+                  " Alpha: " + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
 
