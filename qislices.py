@@ -61,8 +61,8 @@ f = plt.figure(facecolor='black')
 print('*** Slicing')
 for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
-
-    sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], 128)
+    print('Slice pos ', slice_pos[s])
+    sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples)
     sl_mask = qi.sample_slice(img_mask, sl, order=1)
     sl_base = qi.apply_color(qi.sample_slice(img_base, sl), 'gray', window)
     sl_color = qi.apply_color(args.color_scale*qi.sample_slice(img_color, sl),
@@ -70,9 +70,9 @@ for s in range(0, slice_total):
     sl_alpha = qi.sample_slice(img_alpha, sl)
     sl_blend = qi.blend_imgs(sl_base, sl_color,
                              qi.scale_clip(sl_alpha, args.alpha_lims))
-    sl_mask = qi.mask_img(sl_blend, sl_mask)
+    sl_masked = qi.mask_img(sl_blend, sl_mask)
 
-    ax.imshow(sl_blend, origin='lower', extent=sl.extent, interpolation='hanning')
+    ax.imshow(sl_masked, origin='lower', extent=sl.extent, interpolation='hanning')
     ax.axis('off')
     if args.contour > 0:
         ax.contour(sl_alpha, (args.contour,), origin='lower', extent=sl.extent)

@@ -141,7 +141,8 @@ class QICanvas(FigureCanvas):
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
 
-class ApplicationWindow(QtWidgets.QMainWindow):
+class QIViewWindow(QtWidgets.QMainWindow):
+    """Main window class"""
     def __init__(self, args):
         QtWidgets.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -186,24 +187,35 @@ With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.h
 # pylint insists anything at module level is a constant, so disable the stupidity
 # pylint: disable=C0103
 parser = argparse.ArgumentParser(description='Dual-coding viewer.')
-parser.add_argument('base_image',help='Base (structural image)',type=str)
-parser.add_argument('mask_image',help='Mask image',type=str)
-parser.add_argument('color_image',help='Image for color-coding of overlay',type=str)
-parser.add_argument('alpha_image',help='Image for transparency-coding of overlay',type=str)
-parser.add_argument('--window', nargs=2, default=(1,99), help='Specify base image window (in percentiles)')
-parser.add_argument('--samples', type=int, default=128, help='Number of samples for slicing, default=128')
-parser.add_argument('--interp', type=str, default='hanning', help='Display interpolation mode, default=hanning')
-parser.add_argument('--interp_order', type=int, default=1, help='Data interpolation order, default=1')
-parser.add_argument('--alpha_lims', nargs=2,default=(0.5,1.0), help='Alpha/transparency window, default=0.5 1.0')
-parser.add_argument('--alpha_label', type=str, default='1-p', help='Label for alpha/transparency axis')
-parser.add_argument('--contour',help='Specify value for alpha image contour, default=0.95',type=float,default=0.95)
-parser.add_argument('--color_lims', type=float, nargs=2, default=(-1,1), help='Colormap window, default=-1 1')
-parser.add_argument('--color_scale', type=float, default=1, help='Multiply color image by value, default=1')
-parser.add_argument('--color_map', type=str, default='RdYlBu_r', help='Colormap to use from Matplotlib, default = RdYlBu_r')
-parser.add_argument('--color_label', type=str, default='% Change', help='Label for color axis')
+parser.add_argument('base_image', help='Base (structural image)', type=str)
+parser.add_argument('mask_image', help='Mask image', type=str)
+parser.add_argument('color_image', help='Image for color-coding of overlay', type=str)
+parser.add_argument('alpha_image', help='Image for transparency-coding of overlay', type=str)
+parser.add_argument('--window', nargs=2, default=(1, 99),
+                    help='Specify base image window (in percentiles)')
+parser.add_argument('--samples', type=int, default=128,
+                    help='Number of samples for slicing, default=128')
+parser.add_argument('--interp', type=str, default='hanning',
+                    help='Display interpolation mode, default=hanning')
+parser.add_argument('--interp_order', type=int, default=1,
+                    help='Data interpolation order, default=1')
+parser.add_argument('--alpha_lims', nargs=2, default=(0.5, 1.0),
+                    help='Alpha/transparency window, default=0.5 1.0')
+parser.add_argument('--alpha_label', type=str, default='1-p',
+                    help='Label for alpha/transparency axis')
+parser.add_argument('--contour', type=float, default=0.95,
+                    help='Specify value for alpha image contour, default=0.95')
+parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
+                    help='Colormap window, default=-1 1')
+parser.add_argument('--color_scale', type=float, default=1,
+                    help='Multiply color image by value, default=1')
+parser.add_argument('--color_map', type=str, default='RdYlBu_r',
+                    help='Colormap to use from Matplotlib, default = RdYlBu_r')
+parser.add_argument('--color_label', type=str, default='% Change',
+                    help='Label for color axis')
 args = parser.parse_args()
 application = QtWidgets.QApplication(sys.argv)
-window = ApplicationWindow(args)
+window = QIViewWindow(args)
 window.setWindowTitle("%s" % PROG_NAME)
 window.show()
 sys.exit(application.exec_())
