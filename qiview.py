@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """qiview.py --- Simple Viewer for 'dual-coded' neuroimaging overlays
 
 Adapted from http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html

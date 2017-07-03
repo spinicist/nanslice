@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """qicommon.py
 
 Provides common functions / classes for qiview and qislices"""

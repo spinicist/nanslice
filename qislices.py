@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 # Copyright (C) 2017 Tobias Wood
 
 # This code is subject to the terms of the Mozilla Public License. A copy can be
