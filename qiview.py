@@ -96,11 +96,9 @@ class QICanvas(FigureCanvas):
                                                           self.args.interp_order)*self.args.color_scale,
                                           self.args.color_map,
                                           self.args.color_lims)
-                sl_alpha = qi.scale_clip(qi.sample_slice(self.img_alpha,
-                                                         self._slices[i],
-                                                         self.args.interp_order),
-                                         self.args.alpha_lims)
-                sl_blend = qi.mask_img(qi.blend_imgs(sl_base, sl_color, sl_alpha), sl_mask)
+                sl_alpha = qi.sample_slice(self.img_alpha, self._slices[i],self.args.interp_order)
+                sl_alpha_clipped = qi.scale_clip(sl_alpha, self.args.alpha_lims)
+                sl_blend = qi.mask_img(qi.blend_imgs(sl_base, sl_color, sl_alpha_clipped), sl_mask)
 
                 # Draw image
                 if self._first_time:
@@ -117,7 +115,7 @@ class QICanvas(FigureCanvas):
                 if not self._first_time:
                     for coll in self._contours[i].collections:
                         coll.remove()
-                self._contours[i] = self.axes[i].contour(sl_alpha, (self.args.contour,),
+                self._contours[i] = self.axes[i].contour(sl_alpha, levels=[self.args.contour],
                                                          origin='lower',
                                                          extent=self._slices[i].extent)
             self._vlines[i] = self.axes[i].axvline(x=self.cursor[(i+1)%3], color='g')
@@ -133,8 +131,8 @@ class QICanvas(FigureCanvas):
                     self.cursor[(i+1)%3] = event.xdata
                     self.cursor[(i+2)%3] = event.ydata
                     self.update_figure(hold=i)
-            color_val = qi.sample_point(self.img_color, self.cursor)
-            alpha_val = qi.sample_point(self.img_alpha, self.cursor)
+            color_val = qi.sample_point(self.img_color, self.cursor, self.args.interp_order)
+            alpha_val = qi.sample_point(self.img_alpha, self.cursor, self.args.interp_order)
             msg = "Cursor: " + str(self.cursor) +\
                   " Value: " + str(color_val[0]) +\
                   " Alpha: " + str(alpha_val[0])

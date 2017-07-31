@@ -63,7 +63,7 @@ for s in range(0, slice_total):
     ax.imshow(sl_masked, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
     if args.contour > 0:
-        ax.contour(sl_alpha, (args.contour,), origin='lower', extent=sl.extent)
+        ax.contour(sl_alpha, levels=[args.contour], origin='lower', extent=sl.extent)
 
 print('*** Saving')
 axes = plt.subplot(gs2[0], facecolor='black')
