@@ -17,6 +17,7 @@ parser.add_argument('--slice_rows', type=int, default=4, help='Number of rows of
 parser.add_argument('--slice_cols', type=int, default=5, help='Number of columns of slices')
 parser.add_argument('--slice_axis', type=str, default='z', help='Axis to slice along (x/y/z)')
 parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1,0.9), help='Slice between these limits along the axis, default=0.1 0.9')
+parser.add_argument('--figsize', type=float, nargs=2, default=(6, 4), help='Figure size in inches')
 args = parser.parse_args()
 
 print('*** Loading files')
@@ -43,7 +44,7 @@ gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.0
 gs2 = gridspec.GridSpec(1, 1)
 gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
 
-f = plt.figure(facecolor='black')
+f = plt.figure(facecolor='black', figsize=args.figsize)
 
 print('*** Slicing')
 for s in range(0, slice_total):
@@ -63,7 +64,7 @@ for s in range(0, slice_total):
     ax.imshow(sl_masked, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
     if args.contour:
-        ax.contour(sl_alpha, levels=args.contour, origin='lower', extent=sl.extent)
+        ax.contour(sl_alpha, levels=args.contour, origin='lower', extent=sl.extent, colors=args.contour_color)
 
 print('*** Saving')
 axes = plt.subplot(gs2[0], facecolor='black')
