@@ -62,7 +62,7 @@ class QICanvas(FigureCanvas):
 
         qi.alphabar(self.cbar_axis,
                     self.args.color_map, self.args.color_lims, self.args.color_label,
-                    self.args.alpha_lims, self.args.alpha_label)
+                    self.args.alpha_lims, self.args.alpha_label, alines = self.args.contour)
 
         self._slices = [None, None, None]
         self._images = [None, None, None]
@@ -117,7 +117,8 @@ class QICanvas(FigureCanvas):
                         for coll in self._contours[i].collections:
                             coll.remove()
                     self._contours[i] = self.axes[i].contour(sl_alpha, levels=self.args.contour,
-                                                             linewidths=0.5, origin='lower',
+                                                             colors='k',
+                                                             linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
             self._vlines[i] = self.axes[i].axvline(x=self.cursor[(i+1)%3], color='g')
             self._hlines[i] = self.axes[i].axhline(y=self.cursor[(i+2)%3], color='g')

@@ -92,7 +92,9 @@ def blend_imgs(img_under, img_over, img_alpha):
 def mask_img(img, img_mask, back=np.array((0, 0, 0))):
     return blend_imgs(back, img, img_mask)
 
-def alphabar(axes, cm_name, clims, clabel, alims, alabel, black_backg=True):
+def alphabar(axes, cm_name, clims, clabel, 
+             alims, alabel, alines=None,
+             black_backg=True):
     """Plots a 2D colorbar (color/alpha)"""
     csteps = 64
     asteps = 32
@@ -112,6 +114,9 @@ def alphabar(axes, cm_name, clims, clabel, alims, alabel, black_backg=True):
     axes.set_yticklabels(('{:.1f}'.format(alims[0]),
                           alabel,
                           '{:.1f}'.format(alims[1])))
+    if alines:
+        for ay in alines:
+            axes.axhline(y = ay, linestyle='dashed', linewidth=1.0, color='k')
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
