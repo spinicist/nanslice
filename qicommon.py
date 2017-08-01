@@ -150,8 +150,8 @@ def common_args():
                         help='Alpha/transparency window, default=0.5 1.0')
     parser.add_argument('--alpha_label', type=str, default='1-p',
                         help='Label for alpha/transparency axis')
-    parser.add_argument('--contour', type=float, default=0.95,
-                        help='Specify value for alpha image contour, default=0.95')
+    parser.add_argument('--contour', type=float, action='append',
+                        help='Add an alpha image contour (can be multiple)')
     parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
                         help='Colormap window, default=-1 1')
     parser.add_argument('--color_scale', type=float, default=1,

@@ -112,12 +112,13 @@ class QICanvas(FigureCanvas):
                     self._images[i].set_data(sl_blend)
 
                 # Draw contours. For contours remove collection manually
-                if not self._first_time:
-                    for coll in self._contours[i].collections:
-                        coll.remove()
-                self._contours[i] = self.axes[i].contour(sl_alpha, levels=[self.args.contour],
-                                                         origin='lower',
-                                                         extent=self._slices[i].extent)
+                if self.args.contour:
+                    if not self._first_time:
+                        for coll in self._contours[i].collections:
+                            coll.remove()
+                    self._contours[i] = self.axes[i].contour(sl_alpha, levels=self.args.contour,
+                                                             linewidths=0.5, origin='lower',
+                                                             extent=self._slices[i].extent)
             self._vlines[i] = self.axes[i].axvline(x=self.cursor[(i+1)%3], color='g')
             self._hlines[i] = self.axes[i].axhline(y=self.cursor[(i+2)%3], color='g')
         self._first_time = False
