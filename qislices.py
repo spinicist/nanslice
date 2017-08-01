@@ -62,13 +62,13 @@ for s in range(0, slice_total):
 
     ax.imshow(sl_masked, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
-    if args.contour > 0:
-        ax.contour(sl_alpha, levels=[args.contour], origin='lower', extent=sl.extent)
+    if args.contour:
+        ax.contour(sl_alpha, levels=args.contour, origin='lower', extent=sl.extent)
 
 print('*** Saving')
 axes = plt.subplot(gs2[0], facecolor='black')
 qi.alphabar(axes, args.color_map, args.color_lims, args.color_label,
-            args.alpha_lims, args.alpha_label)
+            args.alpha_lims, args.alpha_label, args.contour)
 print('Writing file: ', args.output)
 f.savefig(args.output, facecolor=f.get_facecolor(), edgecolor='none')
 plt.close(f)
