@@ -70,12 +70,12 @@ class QICanvas(FigureCanvas):
         self._hlines = [None, None, None]
         self._vlines = [None, None, None]
         self._first_time = True
+        self.directions = ('z', 'x', 'y')
         self.update_figure()
 
     def update_figure(self, hold=None):
         """Updates the three axis views"""
         #t0 = time.time()
-        directions = ('x', 'y', 'z')
         # Do these individually now because I'm not clever enough to set them in the loop
         if not self._first_time:
             for vline in self._vlines:
@@ -84,8 +84,9 @@ class QICanvas(FigureCanvas):
                 hline.remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = qi.Slice(self.corners[0], self.corners[1], directions[i],
-                                           self.cursor[i], self.args.samples, absolute=True)
+                self._slices[i] = qi.Slice(self.corners[0], self.corners[1], self.directions[i],
+                                           self.cursor[qi.axis_map[self.directions[i]]], 
+                                           self.args.samples, absolute=True, orient=self.args.orient)
                 sl_mask = qi.sample_slice(self.img_mask, self._slices[i], self.args.interp_order)
                 sl_base = qi.apply_color(qi.sample_slice(self.img_base,
                                                          self._slices[i],
@@ -120,8 +121,9 @@ class QICanvas(FigureCanvas):
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
-            self._vlines[i] = self.axes[i].axvline(x=self.cursor[(i+1)%3], color='g')
-            self._hlines[i] = self.axes[i].axhline(y=self.cursor[(i+2)%3], color='g')
+            ind1, ind2 = qi.axis_indices(qi.axis_map[self.directions[i]], self.args.orient)
+            self._vlines[i] = self.axes[i].axvline(x=self.cursor[ind1], color='g')
+            self._hlines[i] = self.axes[i].axhline(y=self.cursor[ind2], color='g')
         self._first_time = False
         #print('Update time:', (time.time() - t0)*1000, 'ms')
         self.draw()
@@ -130,8 +132,9 @@ class QICanvas(FigureCanvas):
         if event.button == 1:
             for i in range(3):
                 if event.inaxes == self.axes[i]:
-                    self.cursor[(i+1)%3] = event.xdata
-                    self.cursor[(i+2)%3] = event.ydata
+                    ind1, ind2 = qi.axis_indices(qi.axis_map[self.directions[i]], self.args.orient)
+                    self.cursor[ind1] = event.xdata
+                    self.cursor[ind2] = event.ydata
                     self.update_figure(hold=i)
             color_val = qi.sample_point(self.img_color, self.cursor, self.args.interp_order)
             alpha_val = qi.sample_point(self.img_alpha, self.cursor, self.args.interp_order)

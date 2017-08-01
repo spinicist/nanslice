@@ -49,7 +49,7 @@ print('*** Slicing')
 for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
     print('Slice pos ', slice_pos[s])
-    sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples)
+    sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples, orient=args.orient)
     sl_mask = qi.sample_slice(img_mask, sl, args.interp_order)
     sl_base = qi.apply_color(qi.sample_slice(img_base, sl, order=args.interp_order), 'gray', window)
     sl_color = qi.apply_color(args.color_scale *

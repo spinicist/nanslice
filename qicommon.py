@@ -26,13 +26,19 @@ def find_bbox(img, padding=0):
     corner2 = np.max(corners[0:3, :], axis=1) + padding
     return corner1, corner2
 
+axis_map = {'x':0, 'y':1, 'z':2}
+orient_map = {   'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
+                   'preclin': ({0: 2, 1: 0, 2: 0}, {0: 1, 1: 2, 2: 1})}
+def axis_indices(slice_index, orient='clin'):
+    this_orient = orient_map[orient]
+    return (this_orient[0][slice_index], this_orient[1][slice_index])
+
 class Slice:
     """A very simple slice class. Stores physical & voxel space co-ords"""
-    def __init__(self, c1, c2, axis, pos, samples, absolute=False):
-        axis_map = {'x':0, 'y':1, 'z':2}
+    def __init__(self, c1, c2, axis, pos, samples,
+                 absolute=False, orient='clin'):
         ind_0 = axis_map[axis]
-        ind_1 = (ind_0 + 1) % 3
-        ind_2 = (ind_0 + 2) % 3
+        ind_1, ind_2 = axis_indices(ind_0, orient=orient)
         start = np.copy(c1)
         diag = c2 - c1
         if absolute:
@@ -165,4 +171,6 @@ def common_args():
                         help='Colormap to use from Matplotlib, default = RdYlBu_r')
     parser.add_argument('--color_label', type=str, default='% Change',
                         help='Label for color axis')
+    parser.add_argument('--orient', type=str, default='clin',
+                        help='Clinical (clin) or Pre-clinical (preclin) orientation')
     return parser
