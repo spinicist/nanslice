@@ -51,18 +51,34 @@ class QICanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
         self.img_base = nib.load(args.base_image)
-        self.img_mask = nib.load(args.mask_image)
-        self.img_color = nib.load(args.color_image)
-        self.img_alpha = nib.load(args.alpha_image)
+        self.img_mask = None
+        self.img_color = None
+        self.img_color_mask = None
+        self.img_alpha = None
+        if args.mask:
+            self.img_mask = nib.load(args.mask)
+            self.corners = qi.mask_bbox(self.img_mask)
+        else:
+            self.corners = qi.img_bbox(self.img_base)
+        if args.color:
+            self.img_color = nib.load(args.color)
+            if args.color_mask:
+                self.img_color_mask = nib.load(args.color_mask)
+            if args.alpha:
+                self.img_alpha = nib.load(args.alpha)
 
-        self.corners = qi.find_bbox(self.img_mask)
+        
         self.cursor = (self.corners[0] + self.corners[1]) / 2
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
 
-        qi.alphabar(self.cbar_axis,
-                    self.args.color_map, self.args.color_lims, self.args.color_label,
-                    self.args.alpha_lims, self.args.alpha_label, alines = self.args.contour)
+        if args.color:
+            if args.alpha:
+                qi.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
+                            args.alpha_lims, args.alpha_label, alines = args.contour)
+            else:
+                qi.colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
+
 
         self._slices = [None, None, None]
         self._images = [None, None, None]
@@ -76,6 +92,11 @@ class QICanvas(FigureCanvas):
     def update_figure(self, hold=None):
         """Updates the three axis views"""
         #t0 = time.time()
+        # Save typing and lookup time
+        args = self.args
+        corners = self.corners
+        cursor = self.cursor
+        directions = self.directions
         # Do these individually now because I'm not clever enough to set them in the loop
         if not self._first_time:
             for vline in self._vlines:
@@ -84,33 +105,24 @@ class QICanvas(FigureCanvas):
                 hline.remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = qi.Slice(self.corners[0], self.corners[1], self.directions[i],
-                                           self.cursor[qi.axis_map[self.directions[i]]], 
-                                           self.args.samples, absolute=True, orient=self.args.orient)
-                sl_mask = qi.sample_slice(self.img_mask, self._slices[i], self.args.interp_order)
-                sl_base = qi.apply_color(qi.sample_slice(self.img_base,
-                                                         self._slices[i],
-                                                         self.args.interp_order),
-                                         'gray', self.base_window)
-                sl_color = qi.apply_color(qi.sample_slice(self.img_color,
-                                                          self._slices[i],
-                                                          self.args.interp_order)*self.args.color_scale,
-                                          self.args.color_map,
-                                          self.args.color_lims)
-                sl_alpha = qi.sample_slice(self.img_alpha, self._slices[i],self.args.interp_order)
-                sl_alpha_clipped = qi.scale_clip(sl_alpha, self.args.alpha_lims)
-                sl_blend = qi.mask_img(qi.blend_imgs(sl_base, sl_color, sl_alpha_clipped), sl_mask)
-
+                self._slices[i] = qi.Slice(corners[0], corners[1], directions[i],
+                                           cursor[qi.axis_map[directions[i]]], 
+                                           args.samples, absolute=True, orient=args.orient)
+                
+                (sl_final, sl_alpha) = qi.overlay_slice(self._slices[i], args, self.base_window,
+                                                        self.img_base, self.img_mask,
+                                                        self.img_color, self.img_color_mask,
+                                                        self.img_alpha)
                 # Draw image
                 if self._first_time:
-                    self._images[i] = self.axes[i].imshow(sl_blend, origin='lower',
+                    self._images[i] = self.axes[i].imshow(sl_final, origin='lower',
                                                           extent=self._slices[i].extent,
                                                           interpolation=self.args.interp)
                     # If these calls go in __init__ then images don't show
                     self.axes[i].axis('off')
                     self.axes[i].axis('image')
                 else:
-                    self._images[i].set_data(sl_blend)
+                    self._images[i].set_data(sl_final)
 
                 # Draw contours. For contours remove collection manually
                 if self.args.contour:
@@ -136,11 +148,13 @@ class QICanvas(FigureCanvas):
                     self.cursor[ind1] = event.xdata
                     self.cursor[ind2] = event.ydata
                     self.update_figure(hold=i)
-            color_val = qi.sample_point(self.img_color, self.cursor, self.args.interp_order)
-            alpha_val = qi.sample_point(self.img_alpha, self.cursor, self.args.interp_order)
-            msg = "Cursor: " + str(self.cursor) +\
-                  " Value: " + str(color_val[0]) +\
-                  " Alpha: " + str(alpha_val[0])
+            msg = 'Cursor: ' + str(self.cursor)
+            if self.args.color:
+                color_val = qi.sample_point(self.img_color, self.cursor, self.args.interp_order)
+                msg = msg + ' ' + self.args.color_label + ': ' + str(color_val[0])
+                if self.args.alpha:
+                    alpha_val = qi.sample_point(self.img_alpha, self.cursor, self.args.interp_order)
+                    msg = msg + ' ' + self.args.alpha_label + ': ' + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
 

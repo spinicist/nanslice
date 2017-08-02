@@ -8,7 +8,16 @@ import scipy.ndimage.interpolation as ndinterp
 import matplotlib as mpl
 import matplotlib.cm as cm
 
-def find_bbox(img, padding=0):
+def img_bbox(img):
+    img_shape = img.get_data().shape
+    corners = np.array([[0, 0, 0, 1.],
+                        [img_shape[0], img_shape[1], img_shape[2], 1.]])
+    corners = np.dot(img.get_affine(), corners.T)
+    corner1 = np.min(corners[0:3, :], axis=1)
+    corner2 = np.max(corners[0:3, :], axis=1)
+    return corner1, corner2
+
+def mask_bbox(img, padding=0):
     """Finds the bounding box of non-zero voxels"""
     data = img.get_data()
 
@@ -98,8 +107,77 @@ def blend_imgs(img_under, img_over, img_alpha):
 def mask_img(img, img_mask, back=np.array((0, 0, 0))):
     return blend_imgs(back, img, img_mask)
 
-def alphabar(axes, cm_name, clims, clabel, 
-             alims, alabel, alines=None,
+def colorbar(axes, cm_name, clims, clabel,
+             black_backg=True):
+    """Plots a 2D colorbar (color/alpha)"""
+    csteps = 64
+    asteps = 32
+    color = apply_color(np.tile(np.linspace(clims[0], clims[1], csteps),
+                                [asteps, 1]), cm_name, clims)
+    alpha = np.tile(np.tile(1, asteps), [csteps, 1]).T
+    backg = np.ones((asteps, csteps, 3))
+    acmap = blend_imgs(backg, color, alpha)
+    axes.imshow(acmap, origin='lower', interpolation='hanning',
+                extent=(clims[0], clims[1], 0, 1),
+                aspect='auto')
+    axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
+    axes.set_xticklabels(('{:.0f}'.format(clims[0]),
+                          clabel,
+                          '{:.0f}'.format(clims[1])))
+    axes.set_yticks(())
+    if black_backg:
+        axes.spines['bottom'].set_color('w')
+        axes.spines['top'].set_color('w')
+        axes.spines['right'].set_color('w')
+        axes.spines['left'].set_color('w')
+        axes.tick_params(axis='x', colors='w')
+        axes.tick_params(axis='y', colors='w')
+        axes.yaxis.label.set_color('w')
+        axes.xaxis.label.set_color('w')
+    else:
+        axes.spines['bottom'].set_color('k')
+        axes.spines['top'].set_color('k')
+        axes.spines['right'].set_color('k')
+        axes.spines['left'].set_color('k')
+        axes.tick_params(axis='x', colors='k')
+        axes.tick_params(axis='y', colors='k')
+        axes.yaxis.label.set_color('k')
+        axes.xaxis.label.set_color('k')
+        axes.axis('on')
+
+def overlay_slice(sl, args, window,
+                  img_base, img_mask, img_color, img_color_mask, img_alpha):
+    sl_base = sample_slice(img_base, sl, order=args.interp_order)
+    sl_base_color = apply_color(sl_base, 'gray', window)
+    if args.mask:
+        sl_mask = sample_slice(img_mask, sl, args.interp_order)
+    else:
+        sl_mask = np.ones_like(sl_base)
+    sl_alpha = None
+    if args.color:
+        sl_color = sample_slice(img_color, sl, order=args.interp_order) * args.color_scale
+        sl_color = apply_color(sl_color, args.color_map, args.color_lims)
+        if args.color_mask:
+            sl_color_mask = sample_slice(img_color_mask, sl, order=args.interp_order)
+            if args.color_mask_thresh:
+                sl_color_mask = sl_color_mask > args.color_mask_thresh
+        else:
+            sl_color_mask = sl_mask
+        sl_color = mask_img(sl_color, sl_color_mask)
+        
+        if args.alpha:
+            sl_alpha = sample_slice(img_alpha, sl, order=args.interp_order)
+            sl_scaled_alpha = scale_clip(sl_alpha, args.alpha_lims)
+            sl_blend = blend_imgs(sl_base_color, sl_color, sl_scaled_alpha)
+        else:
+            sl_blend = blend_imgs(sl_base_color, sl_color, sl_color_mask)
+    else:
+        sl_blend = sl_base_color
+    sl_masked = mask_img(sl_blend, sl_mask)
+    return sl_masked, sl_alpha
+
+def alphabar(axes, cm_name, clims, clabel,
+             alims, alabel, alines=None, alines_colors=['k'],
              black_backg=True):
     """Plots a 2D colorbar (color/alpha)"""
     csteps = 64
@@ -113,16 +191,16 @@ def alphabar(axes, cm_name, clims, clabel,
                 extent=(clims[0], clims[1], alims[0], alims[1]),
                 aspect='auto')
     axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
-    axes.set_xticklabels(('{:.1f}'.format(clims[0]),
+    axes.set_xticklabels(('{:.0f}'.format(clims[0]),
                           clabel,
-                          '{:.1f}'.format(clims[1])))
+                          '{:.0f}'.format(clims[1])))
     axes.set_yticks((alims[0], np.sum(alims)/2, alims[1]))
-    axes.set_yticklabels(('{:.1f}'.format(alims[0]),
+    axes.set_yticklabels(('{:.2f}'.format(alims[0]),
                           alabel,
-                          '{:.1f}'.format(alims[1])))
+                          '{:.2f}'.format(alims[1])))
     if alines:
-        for ay in alines:
-            axes.axhline(y = ay, linestyle='dashed', linewidth=1.0, color='k')
+        for ay, ac in zip(alines, alines_colors):
+            axes.axhline(y = ay, linewidth=1.0, color=ac)
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
@@ -146,9 +224,36 @@ def alphabar(axes, cm_name, clims, clabel,
 def common_args():
     parser = argparse.ArgumentParser(description='Dual-coding viewer.')
     parser.add_argument('base_image', help='Base (structural image)', type=str)
-    parser.add_argument('mask_image', help='Mask image', type=str)
-    parser.add_argument('color_image', help='Image for color-coding of overlay', type=str)
-    parser.add_argument('alpha_image', help='Image for transparency-coding of overlay', type=str)
+    parser.add_argument('--mask', type=str,
+                        help='Mask image')
+
+    parser.add_argument('--color', type=str,
+                        help='Add color overlay')
+    parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
+                        help='Colormap window, default=-1 1')
+    parser.add_argument('--color_mask', type=str,
+                        help='Mask color image')
+    parser.add_argument('--color_mask_thresh', type=float,
+                        help='Color mask threshold')
+    parser.add_argument('--color_scale', type=float, default=1,
+                        help='Multiply color image by value, default=1')
+    parser.add_argument('--color_map', type=str, default='RdYlBu_r',
+                        help='Colormap to use from Matplotlib, default = RdYlBu_r')
+    parser.add_argument('--color_label', type=str, default='% Change',
+                        help='Label for color axis')
+
+    parser.add_argument('--alpha', type=str,
+                        help='Image for transparency-coding of overlay')
+    parser.add_argument('--alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
+                        help='Alpha/transparency window, default=0.5 1.0')
+    parser.add_argument('--alpha_label', type=str, default='1-p',
+                        help='Label for alpha/transparency axis')
+    parser.add_argument('--contour', type=float, action='append',
+                        help='Add an alpha image contour (can be multiple)')
+    parser.add_argument('--contour_color', action='append',
+                        help='Choose contour colour')
+
+
     parser.add_argument('--window', type=float, nargs=2, default=(1, 99),
                         help='Specify base image window (in percentiles)')
     parser.add_argument('--samples', type=int, default=128,
@@ -157,20 +262,6 @@ def common_args():
                         help='Display interpolation mode, default=hanning')
     parser.add_argument('--interp_order', type=int, default=1,
                         help='Data interpolation order, default=1')
-    parser.add_argument('--alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
-                        help='Alpha/transparency window, default=0.5 1.0')
-    parser.add_argument('--alpha_label', type=str, default='1-p',
-                        help='Label for alpha/transparency axis')
-    parser.add_argument('--contour', type=float, action='append',
-                        help='Add an alpha image contour (can be multiple)')
-    parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
-                        help='Colormap window, default=-1 1')
-    parser.add_argument('--color_scale', type=float, default=1,
-                        help='Multiply color image by value, default=1')
-    parser.add_argument('--color_map', type=str, default='RdYlBu_r',
-                        help='Colormap to use from Matplotlib, default = RdYlBu_r')
-    parser.add_argument('--color_label', type=str, default='% Change',
-                        help='Label for color axis')
     parser.add_argument('--orient', type=str, default='clin',
                         help='Clinical (clin) or Pre-clinical (preclin) orientation')
     return parser
