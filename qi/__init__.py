@@ -1,12 +1,20 @@
 #!/usr/bin/env python
-"""qicommon.py
+"""qi
 
-Provides common functions / classes for qiview and qislices"""
-import argparse
+Quick Image Module"""
+
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
+import argparse
 import matplotlib as mpl
 import matplotlib.cm as cm
+from .slice import Slice, axis_map, axis_indices
+
+def sample_point(img, point, order=1):
+    scale = np.mat(img.get_affine()[0:3, 0:3]).I
+    offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
+    s_point = np.dot(scale, point).T + offset[:]
+    return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
 
 def img_bbox(img):
     img_shape = img.get_data().shape
@@ -34,63 +42,6 @@ def mask_bbox(img, padding=0):
     corner1 = np.min(corners[0:3, :], axis=1) - padding
     corner2 = np.max(corners[0:3, :], axis=1) + padding
     return corner1, corner2
-
-axis_map = {'x':0, 'y':1, 'z':2}
-orient_map = {   'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
-                   'preclin': ({0: 2, 1: 0, 2: 0}, {0: 1, 1: 2, 2: 1})}
-def axis_indices(slice_index, orient='clin'):
-    this_orient = orient_map[orient]
-    return (this_orient[0][slice_index], this_orient[1][slice_index])
-
-class Slice:
-    """A very simple slice class. Stores physical & voxel space co-ords"""
-    def __init__(self, c1, c2, axis, pos, samples,
-                 absolute=False, orient='clin'):
-        ind_0 = axis_map[axis]
-        ind_1, ind_2 = axis_indices(ind_0, orient=orient)
-        start = np.copy(c1)
-        diag = c2 - c1
-        if absolute:
-            start[ind_0] = pos
-        else:
-            start[ind_0] = c1[ind_0]*(1-pos) + c2[ind_0]*pos
-        dir_rt = np.zeros((3,))
-        dir_up = np.zeros((3,))
-
-        dir_rt[ind_1] = diag[ind_1]
-        dir_up[ind_2] = diag[ind_2]
-        aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)
-        samples_up = np.round(aspect * samples)
-        self._world_space = (start[:, None, None] +
-                             dir_rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
-                             dir_up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
-        # This is the extent parameter for matplotlib
-        self.extent = (c1[ind_1], c2[ind_1], c1[ind_2], c2[ind_2])
-        self._tfm = None
-        self._voxel_space = None
-
-    def get_physical(self, tfm):
-        """Returns an array of physical space co-ords for this slice. Will be cached."""
-        if not np.array_equal(tfm, self._tfm):
-            old_sz = self._world_space.shape
-            new_sz = np.prod(self._world_space.shape[1:])
-            scale = np.mat(tfm[0:3, 0:3]).I
-            offset = np.dot(-scale, tfm[0:3, 3]).T
-            isl = np.dot(scale, self._world_space.reshape([3, new_sz])) + offset[:]
-            isl = np.array(isl).reshape(old_sz)
-            self._voxel_space = isl
-            self._tfm = tfm
-        return self._voxel_space
-
-def sample_point(img, point, order=1):
-    scale = np.mat(img.get_affine()[0:3, 0:3]).I
-    offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
-    s_point = np.dot(scale, point).T + offset[:]
-    return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
-
-def sample_slice(img, img_slice, order=1):
-    physical = img_slice.get_physical(img.get_affine())
-    return ndinterp.map_coordinates(img.get_data().squeeze(), physical, order=order).T
 
 def apply_color(data, cm_name, clims):
     norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])
@@ -147,18 +98,18 @@ def colorbar(axes, cm_name, clims, clabel,
 
 def overlay_slice(sl, args, window,
                   img_base, img_mask, img_color, img_color_mask, img_alpha):
-    sl_base = sample_slice(img_base, sl, order=args.interp_order)
+    sl_base = sl.sample(img_base, order=args.interp_order)
     sl_base_color = apply_color(sl_base, 'gray', window)
     if args.mask:
-        sl_mask = sample_slice(img_mask, sl, args.interp_order)
+        sl_mask = sl.sample(img_mask, args.interp_order)
     else:
         sl_mask = np.ones_like(sl_base)
     sl_alpha = None
     if args.color:
-        sl_color = sample_slice(img_color, sl, order=args.interp_order) * args.color_scale
+        sl_color = sl.sample(img_color, order=args.interp_order) * args.color_scale
         sl_color = apply_color(sl_color, args.color_map, args.color_lims)
         if args.color_mask:
-            sl_color_mask = sample_slice(img_color_mask, sl, order=args.interp_order)
+            sl_color_mask = sl.sample(img_color_mask, order=args.interp_order)
             if args.color_mask_thresh:
                 sl_color_mask = sl_color_mask > args.color_mask_thresh
         else:
@@ -166,7 +117,7 @@ def overlay_slice(sl, args, window,
         sl_color = mask_img(sl_color, sl_color_mask)
         
         if args.alpha:
-            sl_alpha = sample_slice(img_alpha, sl, order=args.interp_order)
+            sl_alpha = sl.sample(img_alpha, order=args.interp_order)
             sl_scaled_alpha = scale_clip(sl_alpha, args.alpha_lims)
             sl_blend = blend_imgs(sl_base_color, sl_color, sl_scaled_alpha)
         else:

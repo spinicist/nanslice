@@ -11,7 +11,7 @@ found in the root directory of the project.
 
 import sys
 import time
-import qicommon as qi
+import qi
 import numpy as np
 import nibabel as nib
 import matplotlib
@@ -30,17 +30,6 @@ class QICanvas(FigureCanvas):
 
     def __init__(self, args, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
-
-        gs1 = GridSpec(1, 3)
-        gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
-        gs2 = GridSpec(1, 1)
-        gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.16, wspace=0.1, hspace=0.1)
-        self.axes = []
-        for i in range(3):
-            self.axes.append(self.fig.add_subplot(gs1[i], facecolor='black'))
-
-        self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
-
         FigureCanvas.__init__(self, self.fig)
         FigureCanvas.mpl_connect(self, 'button_press_event', self.handle_mouse_event)
         FigureCanvas.mpl_connect(self, 'motion_notify_event', self.handle_mouse_event)
@@ -50,6 +39,10 @@ class QICanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
+
+        gs1 = GridSpec(1, 3)
+        gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
+        self.axes = [self.fig.add_subplot(gs, facecolor='black') for gs in gs1]
         self.img_base = nib.load(args.base_image)
         self.img_mask = None
         self.img_color = None
@@ -64,21 +57,25 @@ class QICanvas(FigureCanvas):
             self.img_color = nib.load(args.color)
             if args.color_mask:
                 self.img_color_mask = nib.load(args.color_mask)
+            gs2 = GridSpec(1, 1)
             if args.alpha:
                 self.img_alpha = nib.load(args.alpha)
-
+                gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
+                gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.16, wspace=0.1, hspace=0.1)
+                # If the line below goes before the lines above, it doesn't layout correctly
+                self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
+                qi.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
+                            args.alpha_lims, args.alpha_label, alines = args.contour)
+            else:
+                gs1.update(left=0.01, right=0.99, bottom=0.12, top=0.99, wspace=0.01, hspace=0.01)
+                gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.12, wspace=0.1, hspace=0.1)
+                # If the line below goes before the lines above, it doesn't layout correctly
+                self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
+                qi.colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
         
         self.cursor = (self.corners[0] + self.corners[1]) / 2
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
-
-        if args.color:
-            if args.alpha:
-                qi.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
-                            args.alpha_lims, args.alpha_label, alines = args.contour)
-            else:
-                qi.colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
-
 
         self._slices = [None, None, None]
         self._images = [None, None, None]
