@@ -177,7 +177,7 @@ def overlay_slice(sl, args, window,
     return sl_masked, sl_alpha
 
 def alphabar(axes, cm_name, clims, clabel,
-             alims, alabel, alines=None, alines_colors=['k'],
+             alims, alabel, alines=None, alines_colors=['k'], alines_styles=['solid'],
              black_backg=True):
     """Plots a 2D colorbar (color/alpha)"""
     csteps = 64
@@ -199,8 +199,8 @@ def alphabar(axes, cm_name, clims, clabel,
                           alabel,
                           '{:.2f}'.format(alims[1])))
     if alines:
-        for ay, ac in zip(alines, alines_colors):
-            axes.axhline(y = ay, linewidth=1.0, color=ac)
+        for ay, ac, astyle in zip(alines, alines_colors, alines_styles):
+            axes.axhline(y = ay, linewidth=1.5, linestyle=astyle, color=ac)
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
@@ -250,9 +250,10 @@ def common_args():
                         help='Label for alpha/transparency axis')
     parser.add_argument('--contour', type=float, action='append',
                         help='Add an alpha image contour (can be multiple)')
-    parser.add_argument('--contour_color', action='append',
+    parser.add_argument('--contour_color', type=str, action='append',
                         help='Choose contour colour')
-
+    parser.add_argument('--contour_style', type=str, action='append',
+                        help='Choose contour line-style')
 
     parser.add_argument('--window', type=float, nargs=2, default=(1, 99),
                         help='Specify base image window (in percentiles)')

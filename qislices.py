@@ -65,7 +65,8 @@ for s in range(0, slice_total):
     ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
     if args.alpha and args.contour:
-        ax.contour(sl_alpha, levels=args.contour, origin='lower', extent=sl.extent, colors=args.contour_color)
+        ax.contour(sl_alpha, levels=args.contour, origin='lower', extent=sl.extent, 
+                   colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
 if args.color:
     print('*** Adding colorbar')
@@ -75,7 +76,8 @@ if args.color:
     axes = plt.subplot(gs2[0], facecolor='black')
     if args.alpha:
         qi.alphabar(axes, args.color_map, args.color_lims, args.color_label,
-                    args.alpha_lims, args.alpha_label, args.contour, args.contour_color)
+                    args.alpha_lims, args.alpha_label,
+                    args.contour, args.contour_color, args.contour_style)
     else:
         qi.colorbar(axes, args.color_map, args.color_lims, args.color_label)
 else:
