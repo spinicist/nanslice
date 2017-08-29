@@ -27,18 +27,25 @@ img_mask = None
 img_color = None
 img_color_mask = None
 img_alpha = None
+img_alpha_contour = None
+
 if args.mask:
-    print('Loading mask image: ', args.mask)
+    print('Loading mask image:', args.mask)
     img_mask = nib.load(args.mask)
 if args.color:
-    print('Loading color overlay image: ', args.color)
+    print('Loading color overlay image:', args.color)
     img_color = nib.load(args.color)
     if args.color_mask:
-        print('Loading color mask image: ', args.color_mask)
+        print('Loading color mask image:', args.color_mask)
         img_color_mask = nib.load(args.color_mask)
     if args.alpha:
-        print('Loading alpha image: ', args.alpha)
+        print('Loading alpha image:', args.alpha)
         img_alpha = nib.load(args.alpha)
+    if args.contour_img:
+        print('Loading alpha contour image:', args.contour_img)
+        img_contour = nib.load(args.contour_img)
+    elif args.contour:
+        img_contour = img_alpha
 
 print('*** Setup')
 window = np.percentile(img_base.get_data(), args.window)
@@ -61,11 +68,14 @@ for s in range(0, slice_total):
     print('Slice pos ', slice_pos[s])
     sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples, orient=args.orient)
     (sl_final, sl_alpha) = qi.overlay_slice(sl, args, window,
-                                            img_base, img_mask, img_color, img_color_mask, img_alpha)
+                                            img_base, img_mask, 
+                                            mg_color, img_color_mask,
+                                            img_alpha)
     ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
-    if args.alpha and args.contour:
-        ax.contour(sl_alpha, levels=args.contour, origin='lower', extent=sl.extent, 
+    if img_contour:
+        sl_contour = sl.sample(img_contour, order=args.interp_order)
+        ax.contour(sl_contour, levels=args.contour, origin='lower', extent=sl.extent, 
                    colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
 if args.color:

@@ -48,6 +48,7 @@ class QICanvas(FigureCanvas):
         self.img_color = None
         self.img_color_mask = None
         self.img_alpha = None
+        self.img_contour = None
         if args.mask:
             self.img_mask = nib.load(args.mask)
             self.corners = qi.mask_bbox(self.img_mask)
@@ -66,6 +67,10 @@ class QICanvas(FigureCanvas):
                 self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
                 qi.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
                             args.alpha_lims, args.alpha_label, alines = args.contour)
+                if args.contour_img:
+                    self.img_contour = nib.load(args.contour_img)
+                elif args.contour:
+                    self.img_contour = self.img_alpha
             else:
                 gs1.update(left=0.01, right=0.99, bottom=0.12, top=0.99, wspace=0.01, hspace=0.01)
                 gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.12, wspace=0.1, hspace=0.1)
@@ -122,11 +127,12 @@ class QICanvas(FigureCanvas):
                     self._images[i].set_data(sl_final)
 
                 # Draw contours. For contours remove collection manually
-                if self.args.contour:
+                if self.img_contour:
                     if not self._first_time:
                         for coll in self._contours[i].collections:
                             coll.remove()
-                    self._contours[i] = self.axes[i].contour(sl_alpha, levels=self.args.contour,
+                    sl_contour = sl.sample(img_contour, order=args.interp_order)
+                    self._contours[i] = self.axes[i].contour(sl_contour, levels=self.args.contour,
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)

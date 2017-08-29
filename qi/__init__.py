@@ -97,7 +97,9 @@ def colorbar(axes, cm_name, clims, clabel,
         axes.axis('on')
 
 def overlay_slice(sl, args, window,
-                  img_base, img_mask, img_color, img_color_mask, img_alpha):
+                  img_base, img_mask,
+                  img_color, img_color_mask,
+                  img_alpha):
     sl_base = sl.sample(img_base, order=args.interp_order)
     sl_base_color = apply_color(sl_base, 'gray', window)
     if args.mask:
@@ -199,8 +201,11 @@ def common_args():
                         help='Alpha/transparency window, default=0.5 1.0')
     parser.add_argument('--alpha_label', type=str, default='1-p',
                         help='Label for alpha/transparency axis')
-    parser.add_argument('--contour', type=float, action='append',
-                        help='Add an alpha image contour (can be multiple)')
+    
+    parser.add_argument('--contour_img', type=str,
+                        help='Image to define contour (if none, use alpha image)')
+    parser.add_argument('--contour', type=float, action='append', default=0.95,
+                        help='Add an alpha image contour (can be multiple, default 0.95)')
     parser.add_argument('--contour_color', type=str, action='append',
                         help='Choose contour colour')
     parser.add_argument('--contour_style', type=str, action='append',
