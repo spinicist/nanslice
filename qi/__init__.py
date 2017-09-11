@@ -204,8 +204,8 @@ def common_args():
     
     parser.add_argument('--contour_img', type=str,
                         help='Image to define contour (if none, use alpha image)')
-    parser.add_argument('--contour', type=float, action='append', default=0.95,
-                        help='Add an alpha image contour (can be multiple, default 0.95)')
+    parser.add_argument('--contour', type=float, action='append',
+                        help='Add an alpha image contour (can be multiple)')
     parser.add_argument('--contour_color', type=str, action='append',
                         help='Choose contour colour')
     parser.add_argument('--contour_style', type=str, action='append',

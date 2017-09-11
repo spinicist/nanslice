@@ -131,7 +131,7 @@ class QICanvas(FigureCanvas):
                     if not self._first_time:
                         for coll in self._contours[i].collections:
                             coll.remove()
-                    sl_contour = sl.sample(img_contour, order=args.interp_order)
+                    sl_contour = self._slices[i].sample(self.img_contour, order=args.interp_order)
                     self._contours[i] = self.axes[i].contour(sl_contour, levels=self.args.contour,
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',

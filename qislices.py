@@ -69,7 +69,7 @@ for s in range(0, slice_total):
     sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples, orient=args.orient)
     (sl_final, sl_alpha) = qi.overlay_slice(sl, args, window,
                                             img_base, img_mask, 
-                                            mg_color, img_color_mask,
+                                            img_color, img_color_mask,
                                             img_alpha)
     ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
@@ -86,8 +86,7 @@ if args.color:
     axes = plt.subplot(gs2[0], facecolor='black')
     if args.alpha:
         qi.alphabar(axes, args.color_map, args.color_lims, args.color_label,
-                    args.alpha_lims, args.alpha_label,
-                    args.contour, args.contour_color, args.contour_style)
+                    args.alpha_lims, args.alpha_label)
     else:
         qi.colorbar(axes, args.color_map, args.color_lims, args.color_label)
 else:
