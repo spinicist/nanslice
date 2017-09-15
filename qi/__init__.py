@@ -7,6 +7,7 @@ import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 import argparse
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from .slice import Slice, axis_map, axis_indices
 
@@ -24,6 +25,29 @@ def img_bbox(img):
     corner1 = np.min(corners[0:3, :], axis=1)
     corner2 = np.max(corners[0:3, :], axis=1)
     return corner1, corner2
+
+def center_of_mass(img):
+    idx0 = np.argmax(np.sum(img.get_data(), axis=(1,2)))
+    idx1 = np.argmax(np.sum(img.get_data(), axis=(0,2)))
+    idx2 = np.argmax(np.sum(img.get_data(), axis=(0,1)))
+    phys = np.dot(img.affine, np.array([idx0, idx1, idx2,1]).T)
+    return phys
+
+def cross_sections(img, cmap='gray'):
+    bbox = img_bbox(img)
+    center = center_of_mass(img)
+    a = ('x', 'y', 'z')
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    for i in range(3):
+        sl = Slice(bbox[0], bbox[1], a[i], center[i], 256,
+                   absolute=True, orient='clin')
+        sl_img = sl.sample(img, order=0)
+        print(np.min(sl_img), np.max(sl_img))
+        im = axes[i].imshow(sl_img, origin='lower', extent=sl.extent, cmap=cmap, vmin = 0.1)
+        axes[i].axis('off')
+        if i == 2:
+            fig.colorbar(im)
+    return (fig, axes)
 
 def mask_bbox(img, padding=0):
     """Finds the bounding box of non-zero voxels"""
