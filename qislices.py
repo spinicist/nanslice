@@ -27,7 +27,7 @@ img_mask = None
 img_color = None
 img_color_mask = None
 img_alpha = None
-img_alpha_contour = None
+img_contour = None
 
 if args.mask:
     print('Loading mask image:', args.mask)
@@ -51,10 +51,10 @@ print('*** Setup')
 window = np.percentile(img_base.get_data(), args.window)
 print('Base image window: ', window[0], ' - ', window[1])
 if args.mask:
-    (corner1, corner2) = qi.mask_bbox(img_mask)
+    bbox = qi.Box(img_mask, mask=True)
 else:
-    (corner1, corner2) = qi.img_bbox(img_base)
-print('Bounding box: ', corner1, ' -> ', corner2)
+    bbox = qi.Box(img_base, mask=False)
+print(bbox)
 slice_total = args.slice_rows*args.slice_cols
 print(slice_total, ' slices in ', args.slice_rows, ' rows and ', args.slice_cols, ' columns')
 slice_pos = np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)
@@ -66,7 +66,7 @@ print('*** Slicing')
 for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
     print('Slice pos ', slice_pos[s])
-    sl = qi.Slice(corner1, corner2, args.slice_axis, slice_pos[s], args.samples, orient=args.orient)
+    sl = qi.Slice(bbox, args.slice_axis, slice_pos[s], args.samples, orient=args.orient)
     (sl_final, sl_alpha) = qi.overlay_slice(sl, args, window,
                                             img_base, img_mask, 
                                             img_color, img_color_mask,

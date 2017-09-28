@@ -6,36 +6,35 @@ import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 
 axis_map = {'x':0, 'y':1, 'z':2}
-orient_map = {   'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
-                   'preclin': ({0: 2, 1: 0, 2: 0}, {0: 1, 1: 2, 2: 1})}
+orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
+              'preclin': ({0: 2, 1: 0, 2: 0}, {0: 1, 1: 2, 2: 1})}
 def axis_indices(slice_index, orient='clin'):
     this_orient = orient_map[orient]
     return (this_orient[0][slice_index], this_orient[1][slice_index])
 
 class Slice:
     """A very simple slice class. Stores physical & voxel space co-ords"""
-    def __init__(self, c1, c2, axis, pos, samples,
+    def __init__(self, bbox, axis, pos, samples=64,
                  absolute=False, orient='clin'):
         ind_0 = axis_map[axis]
         ind_1, ind_2 = axis_indices(ind_0, orient=orient)
-        start = np.copy(c1)
-        diag = c2 - c1
+        start = np.copy(bbox.start)
         if absolute:
             start[ind_0] = pos
         else:
-            start[ind_0] = c1[ind_0]*(1-pos) + c2[ind_0]*pos
+            start[ind_0] = bbox.start[ind_0]*(1-pos) + bbox.end[ind_0]*pos
         dir_rt = np.zeros((3,))
         dir_up = np.zeros((3,))
 
-        dir_rt[ind_1] = diag[ind_1]
-        dir_up[ind_2] = diag[ind_2]
+        dir_rt[ind_1] = bbox.diag[ind_1]
+        dir_up[ind_2] = bbox.diag[ind_2]
         aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)
         samples_up = np.round(aspect * samples)
         self._world_space = (start[:, None, None] +
                              dir_rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
                              dir_up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
         # This is the extent parameter for matplotlib
-        self.extent = (c1[ind_1], c2[ind_1], c1[ind_2], c2[ind_2])
+        self.extent = (bbox.start[ind_1], bbox.end[ind_1], bbox.start[ind_2], bbox.end[ind_2])
         self._tfm = None
         self._voxel_space = None
 

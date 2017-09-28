@@ -3,28 +3,20 @@
 
 Quick Image Module"""
 
+import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
-import argparse
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from .slice import Slice, axis_map, axis_indices
+from .box import Box
 
 def sample_point(img, point, order=1):
     scale = np.mat(img.get_affine()[0:3, 0:3]).I
     offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
     s_point = np.dot(scale, point).T + offset[:]
     return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
-
-def img_bbox(img):
-    img_shape = img.get_data().shape
-    corners = np.array([[0, 0, 0, 1.],
-                        [img_shape[0], img_shape[1], img_shape[2], 1.]])
-    corners = np.dot(img.get_affine(), corners.T)
-    corner1 = np.min(corners[0:3, :], axis=1)
-    corner2 = np.max(corners[0:3, :], axis=1)
-    return corner1, corner2
 
 def center_of_mass(img):
     idx0 = np.argmax(np.sum(img.get_data(), axis=(1,2)))
@@ -34,38 +26,19 @@ def center_of_mass(img):
     return phys
 
 def cross_sections(img, cmap='gray'):
-    bbox = img_bbox(img)
+    bbox = Box(img, mask=True)
     center = center_of_mass(img)
     a = ('x', 'y', 'z')
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     for i in range(3):
-        sl = Slice(bbox[0], bbox[1], a[i], center[i], 256,
+        sl = Slice(bbox, a[i], center[i], 256,
                    absolute=True, orient='clin')
         sl_img = sl.sample(img, order=0)
-        print(np.min(sl_img), np.max(sl_img))
         im = axes[i].imshow(sl_img, origin='lower', extent=sl.extent, cmap=cmap, vmin = 0.1)
         axes[i].axis('off')
         if i == 2:
             fig.colorbar(im)
     return (fig, axes)
-
-def mask_bbox(img, padding=0):
-    """Finds the bounding box of non-zero voxels"""
-    data = img.get_data()
-
-    # Individual axis min/maxes
-    xmin, xmax = np.where(np.any(data, axis=(1, 2)))[0][[0, -1]]
-    ymin, ymax = np.where(np.any(data, axis=(0, 2)))[0][[0, -1]]
-    zmin, zmax = np.where(np.any(data, axis=(0, 1)))[0][[0, -1]]
-
-    # Convedir_rt to physical space
-    corners = np.array([[xmin, ymin, zmin, 1.],
-                        [xmax, ymax, zmax, 1.]])
-    corners = np.dot(img.get_affine(), corners.T)
-    # Now do min/maxes again to standardise corners
-    corner1 = np.min(corners[0:3, :], axis=1) - padding
-    corner2 = np.max(corners[0:3, :], axis=1) + padding
-    return corner1, corner2
 
 def apply_color(data, cm_name, clims):
     norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])

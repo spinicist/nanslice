@@ -11,15 +11,15 @@ found in the root directory of the project.
 
 import sys
 import time
+import matplotlib
+# Make sure that we are using QT5
+matplotlib.use('Qt5Agg')
 import qi
 import numpy as np
 import nibabel as nib
-import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from PyQt5 import QtCore, QtWidgets
-# Make sure that we are using QT5
-matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 PROG_NAME = 'QIView'
@@ -51,9 +51,9 @@ class QICanvas(FigureCanvas):
         self.img_contour = None
         if args.mask:
             self.img_mask = nib.load(args.mask)
-            self.corners = qi.mask_bbox(self.img_mask)
+            self.bbox = qi.Box(self.img_mask, mask=True)
         else:
-            self.corners = qi.img_bbox(self.img_base)
+            self.bbox = qi.Box(self.img_base, mask=False)
         if args.color:
             self.img_color = nib.load(args.color)
             if args.color_mask:
@@ -78,7 +78,7 @@ class QICanvas(FigureCanvas):
                 self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
                 qi.colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
         
-        self.cursor = (self.corners[0] + self.corners[1]) / 2
+        self.cursor = self.bbox.center
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
         self.args = args
 
@@ -96,7 +96,7 @@ class QICanvas(FigureCanvas):
         #t0 = time.time()
         # Save typing and lookup time
         args = self.args
-        corners = self.corners
+        bbox = self.bbox
         cursor = self.cursor
         directions = self.directions
         # Do these individually now because I'm not clever enough to set them in the loop
@@ -107,7 +107,7 @@ class QICanvas(FigureCanvas):
                 hline.remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = qi.Slice(corners[0], corners[1], directions[i],
+                self._slices[i] = qi.Slice(bbox, directions[i],
                                            cursor[qi.axis_map[directions[i]]], 
                                            args.samples, absolute=True, orient=args.orient)
                 
