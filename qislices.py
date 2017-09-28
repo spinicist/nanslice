@@ -57,7 +57,7 @@ else:
 print(bbox)
 slice_total = args.slice_rows*args.slice_cols
 print(slice_total, ' slices in ', args.slice_rows, ' rows and ', args.slice_cols, ' columns')
-slice_pos = np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)
+slice_pos = bbox.start + bbox.diag * np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)[:, np.newaxis]
 
 gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
 f = plt.figure(facecolor='black', figsize=args.figsize)
@@ -65,8 +65,8 @@ f = plt.figure(facecolor='black', figsize=args.figsize)
 print('*** Slicing')
 for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
-    print('Slice pos ', slice_pos[s])
-    sl = qi.Slice(bbox, args.slice_axis, slice_pos[s], args.samples, orient=args.orient)
+    print('Slice pos ', slice_pos[s, :])
+    sl = qi.Slice(bbox, slice_pos[s, :], args.slice_axis, args.samples, orient=args.orient)
     (sl_final, sl_alpha) = qi.overlay_slice(sl, args, window,
                                             img_base, img_mask, 
                                             img_color, img_color_mask,

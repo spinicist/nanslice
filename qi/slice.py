@@ -13,16 +13,24 @@ def axis_indices(slice_index, orient='clin'):
     return (this_orient[0][slice_index], this_orient[1][slice_index])
 
 class Slice:
-    """A very simple slice class. Stores physical & voxel space co-ords"""
-    def __init__(self, bbox, axis, pos, samples=64,
-                 absolute=False, orient='clin'):
-        ind_0 = axis_map[axis]
+    """A very simple slice class. Stores physical & voxel space co-ords
+    Parameters:
+        bbox:    Bounding-Box that you want to slice
+        pos:     Position within the box to generate the slice through
+        axis:    Which axis you want to slice on
+        samples: Number of samples across the slice
+        orient:  'clin' or 'preclin'
+    """
+
+    def __init__(self, bbox, pos, axis, samples=64, orient='clin'):
+        try:
+            ind_0 = axis_map[axis] # If someone passed in x/y/z
+        except:
+            ind_0 = axis # Assume it was an integer
+        
         ind_1, ind_2 = axis_indices(ind_0, orient=orient)
         start = np.copy(bbox.start)
-        if absolute:
-            start[ind_0] = pos
-        else:
-            start[ind_0] = bbox.start[ind_0]*(1-pos) + bbox.end[ind_0]*pos
+        start[ind_0] = pos[ind_0]
         dir_rt = np.zeros((3,))
         dir_up = np.zeros((3,))
 

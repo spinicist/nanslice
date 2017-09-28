@@ -107,9 +107,8 @@ class QICanvas(FigureCanvas):
                 hline.remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = qi.Slice(bbox, directions[i],
-                                           cursor[qi.axis_map[directions[i]]], 
-                                           args.samples, absolute=True, orient=args.orient)
+                self._slices[i] = qi.Slice(bbox, cursor, self.directions[i],
+                                           args.samples, orient=args.orient)
                 
                 (sl_final, sl_alpha) = qi.overlay_slice(self._slices[i], args, self.base_window,
                                                         self.img_base, self.img_mask,
