@@ -27,12 +27,10 @@ def center_of_mass(img):
 
 def cross_sections(img, cmap='gray'):
     bbox = Box(img, mask=True)
-    center = center_of_mass(img)
     a = ('x', 'y', 'z')
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     for i in range(3):
-        sl = Slice(bbox, a[i], center[i], 256,
-                   absolute=True, orient='clin')
+        sl = Slice(bbox, bbox.center, a[i], 256, orient='clin')
         sl_img = sl.sample(img, order=0)
         im = axes[i].imshow(sl_img, origin='lower', extent=sl.extent, cmap=cmap, vmin = 0.1)
         axes[i].axis('off')
