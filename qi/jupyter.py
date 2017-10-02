@@ -27,7 +27,6 @@ def interactive(img, cmap='gray', window=(2, 98)):
     # Get some information about the image
     bbox = Box(img, mask=True)
     window_vals = np.nanpercentile(img.get_data(), window)
-    print(window_vals, np.max(img.get_data()), np.min(img.get_data()))
     # Setup figure
     fig, axes = plt.subplots(1, 3, figsize=(11, 4))
     implots = [None, None, None]
