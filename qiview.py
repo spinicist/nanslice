@@ -65,8 +65,8 @@ class QICanvas(FigureCanvas):
                 gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.16, wspace=0.1, hspace=0.1)
                 # If the line below goes before the lines above, it doesn't layout correctly
                 self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
-                qi.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
-                            args.alpha_lims, args.alpha_label, alines = args.contour)
+                qi.util.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
+                                 args.alpha_lims, args.alpha_label, alines = args.contour)
                 if args.contour_img:
                     self.img_contour = nib.load(args.contour_img)
                 elif args.contour:
@@ -85,8 +85,7 @@ class QICanvas(FigureCanvas):
         self._slices = [None, None, None]
         self._images = [None, None, None]
         self._contours = [None, None, None]
-        self._hlines = [None, None, None]
-        self._vlines = [None, None, None]
+        self._crosshairs = [None, None, None]
         self._first_time = True
         self.directions = ('z', 'x', 'y')
         self.update_figure()
@@ -101,19 +100,19 @@ class QICanvas(FigureCanvas):
         directions = self.directions
         # Do these individually now because I'm not clever enough to set them in the loop
         if not self._first_time:
-            for vline in self._vlines:
-                vline.remove()
-            for hline in self._hlines:
-                hline.remove()
+            for crosshair in self._crosshairs:
+                # Crosshairs consist of a vline/hline pair
+                crosshair[0].remove()
+                crosshair[1].remove()
         for i in range(3):
             if i != hold:
                 self._slices[i] = qi.Slice(bbox, cursor, self.directions[i],
                                            args.samples, orient=args.orient)
                 
-                (sl_final, sl_alpha) = qi.overlay_slice(self._slices[i], args, self.base_window,
-                                                        self.img_base, self.img_mask,
-                                                        self.img_color, self.img_color_mask,
-                                                        self.img_alpha)
+                (sl_final, sl_alpha) = qi.util.overlay_slice(self._slices[i], args, self.base_window,
+                                                             self.img_base, self.img_mask,
+                                                             self.img_color, self.img_color_mask,
+                                                             self.img_alpha)
                 # Draw image
                 if self._first_time:
                     self._images[i] = self.axes[i].imshow(sl_final, origin='lower',
@@ -135,9 +134,8 @@ class QICanvas(FigureCanvas):
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
-            ind1, ind2 = qi.axis_indices(qi.axis_map[self.directions[i]], self.args.orient)
-            self._vlines[i] = self.axes[i].axvline(x=self.cursor[ind1], color='g')
-            self._hlines[i] = self.axes[i].axhline(y=self.cursor[ind2], color='g')
+            self._crosshairs[i] = qi.util.crosshairs(self.axes[i], self.cursor, 
+                                                     self.directions[i], self.args.orient)
         self._first_time = False
         #print('Update time:', (time.time() - t0)*1000, 'ms')
         self.draw()
@@ -152,10 +150,10 @@ class QICanvas(FigureCanvas):
                     self.update_figure(hold=i)
             msg = 'Cursor: ' + str(self.cursor)
             if self.args.color:
-                color_val = qi.sample_point(self.img_color, self.cursor, self.args.interp_order)
+                color_val = qi.util.sample_point(self.img_color, self.cursor, self.args.interp_order)
                 msg = msg + ' ' + self.args.color_label + ': ' + str(color_val[0])
                 if self.args.alpha:
-                    alpha_val = qi.sample_point(self.img_alpha, self.cursor, self.args.interp_order)
+                    alpha_val = qi.util.sample_point(self.img_alpha, self.cursor, self.args.interp_order)
                     msg = msg + ' ' + self.args.alpha_label + ': ' + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
@@ -205,7 +203,7 @@ With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.h
 
 # pylint insists anything at module level is a constant, so disable the stupidity
 # pylint: disable=C0103
-args = qi.common_args().parse_args()
+args = qi.util.common_args().parse_args()
 application = QtWidgets.QApplication(sys.argv)
 window = QIViewWindow(args)
 window.setWindowTitle("%s" % PROG_NAME)
