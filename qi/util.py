@@ -8,7 +8,7 @@ Utility functions for QIView module"""
 import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
-import qi.image
+from . import image
 from .slice import Slice, axis_map, axis_indices
 from .box import Box
 
