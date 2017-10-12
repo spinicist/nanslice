@@ -4,6 +4,7 @@
 Functions for manipulating images (in this (X, Y, 3) arrays)"""
 
 import numpy as np
+import scipy.ndimage.filters as filters
 import matplotlib as mpl
 
 def colorize(data, cm_name, clims):
@@ -24,3 +25,7 @@ def blend(img_under, img_over, img_alpha):
 def mask(img, img_mask, back=np.array((0, 0, 0))):
     """Mask out sections of one image using another"""
     return blend(back, img, img_mask)
+
+def blur(img, sigma=1):
+    """Blur an image with a Gaussian kernel"""
+    return filters.gaussian_filter(img, sigma)
