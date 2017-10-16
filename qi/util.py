@@ -66,30 +66,33 @@ def crosshairs(ax, point, direction, orient, color='g'):
     return (vl, hl)
 
 def colorbar(axes, cm_name, clims, clabel,
-             black_backg=True):
+             black_backg=True, show_ticks=True, tick_fmt='{:.0f}'):
     """Plots a 2D colorbar (color/alpha)"""
     csteps = 64
     asteps = 32
-    color = qi.image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps),
+    color = image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps),
                                 [asteps, 1]), cm_name, clims)
     alpha = np.tile(np.tile(1, asteps), [csteps, 1]).T
     backg = np.ones((asteps, csteps, 3))
-    acmap = qi.image.blend(backg, color, alpha)
+    acmap = image.blend(backg, color, alpha)
     axes.imshow(acmap, origin='lower', interpolation='hanning',
                 extent=(clims[0], clims[1], 0, 1),
                 aspect='auto')
-    axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
-    axes.set_xticklabels(('{:.0f}'.format(clims[0]),
-                          clabel,
-                          '{:.0f}'.format(clims[1])))
+    if show_ticks:
+        axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
+        axes.set_xticklabels((tick_fmt.format(clims[0]),
+                            clabel,
+                            tick_fmt.format(clims[1])))
+    else:
+        axes.set_xticks((np.sum(clims)/2,))
+        axes.set_xticklabels((clabel,))
     axes.set_yticks(())
+    axes.tick_params(axis='both', which='both', length=0)
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
         axes.spines['right'].set_color('w')
         axes.spines['left'].set_color('w')
-        axes.tick_params(axis='x', colors='w')
-        axes.tick_params(axis='y', colors='w')
         axes.yaxis.label.set_color('w')
         axes.xaxis.label.set_color('w')
     else:
@@ -97,8 +100,6 @@ def colorbar(axes, cm_name, clims, clabel,
         axes.spines['top'].set_color('k')
         axes.spines['right'].set_color('k')
         axes.spines['left'].set_color('k')
-        axes.tick_params(axis='x', colors='k')
-        axes.tick_params(axis='y', colors='k')
         axes.yaxis.label.set_color('k')
         axes.xaxis.label.set_color('k')
         axes.axis('on')
