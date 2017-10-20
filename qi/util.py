@@ -78,31 +78,29 @@ def colorbar(axes, cm_name, clims, clabel,
     axes.imshow(acmap, origin='lower', interpolation='hanning',
                 extent=(clims[0], clims[1], 0, 1),
                 aspect='auto')
+    if black_backg:
+        forecolor='w'
+    else:
+        forecolor='k'
     if show_ticks:
         axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
         axes.set_xticklabels((tick_fmt.format(clims[0]),
-                            clabel,
-                            tick_fmt.format(clims[1])))
+                             clabel,
+                             tick_fmt.format(clims[1])),
+                             color=forecolor)
     else:
         axes.set_xticks((np.sum(clims)/2,))
-        axes.set_xticklabels((clabel,))
+        axes.set_xticklabels((clabel,), color=forecolor)
     axes.set_yticks(())
     axes.tick_params(axis='both', which='both', length=0)
-    if black_backg:
-        axes.spines['bottom'].set_color('w')
-        axes.spines['top'].set_color('w')
-        axes.spines['right'].set_color('w')
-        axes.spines['left'].set_color('w')
-        axes.yaxis.label.set_color('w')
-        axes.xaxis.label.set_color('w')
-    else:
-        axes.spines['bottom'].set_color('k')
-        axes.spines['top'].set_color('k')
-        axes.spines['right'].set_color('k')
-        axes.spines['left'].set_color('k')
-        axes.yaxis.label.set_color('k')
-        axes.xaxis.label.set_color('k')
-        axes.axis('on')
+
+    axes.spines['top'].set_color(forecolor)
+    axes.spines['bottom'].set_color(forecolor)
+    axes.spines['left'].set_color(forecolor)
+    axes.spines['right'].set_color(forecolor)
+    axes.yaxis.label.set_color(forecolor)
+    axes.xaxis.label.set_color(forecolor)
+    axes.axis('on')
 
 def alphabar(axes, cm_name, clims, clabel,
              alims, alabel, alines=None, alines_colors=['k'], alines_styles=['solid'],
