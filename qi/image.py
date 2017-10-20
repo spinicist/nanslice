@@ -7,9 +7,12 @@ import numpy as np
 import scipy.ndimage.filters as filters
 import matplotlib as mpl
 
-def colorize(data, cm_name, clims):
+def colorize(data, cm_name, clims=None):
     """Apply a colormap to grayscale data. Takes an (X, Y) array and returns an (X, Y, 3) array"""
-    norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])
+    if clims is None:
+        norm = None
+    else:
+        norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])
     cmap = mpl.cm.get_cmap(cm_name)
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     return smap.to_rgba(data, alpha=1, bytes=False)[:, :, 0:3]
