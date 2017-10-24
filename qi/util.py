@@ -9,8 +9,7 @@ import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 from . import image
-from .slice import Slice, axis_map, axis_indices
-from .box import Box
+from .slice import axis_map, axis_indices
 
 def sample_point(img, point, order=1):
     scale = np.mat(img.get_affine()[0:3, 0:3]).I
@@ -30,40 +29,36 @@ def overlay_slice(sl, args, window,
                   img_color, img_color_mask,
                   img_alpha):
     """Creates a slice through a base image, with a color overlay and specified alpha"""
-    sl_base = sl.sample(img_base, order=args.interp_order)
-    sl_base_color = qi.image.colorize(sl_base, 'gray', window)
-    if args.mask:
-        sl_mask = sl.sample(img_mask, args.interp_order)
-    else:
-        sl_mask = np.ones_like(sl_base)
-    sl_alpha = None
+    sl_base = image.colorize(sl.sample(img_base, order=args.interp_order),
+                             'gray', window)
     if args.color:
         sl_color = sl.sample(img_color, order=args.interp_order) * args.color_scale
-        sl_color = qi.image.colorize(sl_color, args.color_map, args.color_lims)
+        sl_color = image.colorize(sl_color, args.color_map, args.color_lims)
         if args.color_mask:
             sl_color_mask = sl.sample(img_color_mask, order=args.interp_order)
             if args.color_mask_thresh:
                 sl_color_mask = sl_color_mask > args.color_mask_thresh
-        else:
-            sl_color_mask = sl_mask
-        sl_color = qi.image.mask(sl_color, sl_color_mask)
-        
+            sl_color = image.mask(sl_color, sl_color_mask)
         if args.alpha:
             sl_alpha = sl.sample(img_alpha, order=args.interp_order)
-            sl_scaled_alpha = qi.image.scale_clip(sl_alpha, args.alpha_lims)
-            sl_blend = qi.image.blend(sl_base_color, sl_color, sl_scaled_alpha)
+            sl_scaled_alpha = image.scale_clip(sl_alpha, args.alpha_lims)
+            sl_blend = image.blend(sl_base, sl_color, sl_scaled_alpha)
         else:
-            sl_blend = qi.image.blend(sl_base_color, sl_color, sl_color_mask)
+            sl_blend = image.blend(sl_base, sl_color, sl_color_mask)
     else:
-        sl_blend = sl_base_color
-    sl_masked = qi.image.mask(sl_blend, sl_mask)
-    return sl_masked, sl_alpha
+        sl_blend = sl_base
+    if args.mask:
+        sl_final = image.mask(sl_blend,
+                              slice.sample(img_mask, args.interp_order))
+    else:
+        sl_final = sl_blend
+    return sl_final
 
-def crosshairs(ax, point, direction, orient, color='g'):
+def crosshairs(axis, point, direction, orient, color='g'):
     ind1, ind2 = axis_indices(axis_map[direction], orient)
-    vl = ax.axvline(x=point[ind1], color='g')
-    hl = ax.axhline(y=point[ind2], color='g')
-    return (vl, hl)
+    vline = axis.axvline(x=point[ind1], color=color)
+    hline = axis.axhline(y=point[ind2], color=color)
+    return (vline, hline)
 
 def colorbar(axes, cm_name, clims, clabel,
              black_backg=True, show_ticks=True, tick_fmt='{:.0f}'):
@@ -71,7 +66,7 @@ def colorbar(axes, cm_name, clims, clabel,
     csteps = 64
     asteps = 32
     color = image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps),
-                                [asteps, 1]), cm_name, clims)
+                                   [asteps, 1]), cm_name, clims)
     alpha = np.tile(np.tile(1, asteps), [csteps, 1]).T
     backg = np.ones((asteps, csteps, 3))
     acmap = image.blend(backg, color, alpha)
@@ -79,14 +74,14 @@ def colorbar(axes, cm_name, clims, clabel,
                 extent=(clims[0], clims[1], 0, 1),
                 aspect='auto')
     if black_backg:
-        forecolor='w'
+        forecolor = 'w'
     else:
-        forecolor='k'
+        forecolor = 'k'
     if show_ticks:
         axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
         axes.set_xticklabels((tick_fmt.format(clims[0]),
-                             clabel,
-                             tick_fmt.format(clims[1])),
+                              clabel,
+                              tick_fmt.format(clims[1])),
                              color=forecolor)
     else:
         axes.set_xticks((np.sum(clims)/2,))
@@ -103,16 +98,16 @@ def colorbar(axes, cm_name, clims, clabel,
     axes.axis('on')
 
 def alphabar(axes, cm_name, clims, clabel,
-             alims, alabel, alines=None, alines_colors=['k'], alines_styles=['solid'],
+             alims, alabel, alines=None, alines_colors=('k',), alines_styles=('solid',),
              black_backg=True):
     """Plots a 2D colorbar (color/alpha)"""
     csteps = 64
     asteps = 32
-    color = qi.image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps),
-                           [asteps, 1]), cm_name, clims)
+    color = image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps), [asteps, 1]),
+                           cm_name, clims)
     alpha = np.tile(np.linspace(0, 1, asteps), [csteps, 1]).T
     backg = np.ones((asteps, csteps, 3))
-    acmap = qi.image.blend(backg, color, alpha)
+    acmap = image.blend(backg, color, alpha)
     axes.imshow(acmap, origin='lower', interpolation='hanning',
                 extent=(clims[0], clims[1], alims[0], alims[1]),
                 aspect='auto')
@@ -126,7 +121,7 @@ def alphabar(axes, cm_name, clims, clabel,
                           '{:.2f}'.format(alims[1])))
     if alines:
         for ay, ac, astyle in zip(alines, alines_colors, alines_styles):
-            axes.axhline(y = ay, linewidth=1.5, linestyle=astyle, color=ac)
+            axes.axhline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
@@ -148,6 +143,7 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.axis('on')
 
 def common_args():
+    """Defines a set of common arguments that are shared between qiview and qislices"""
     parser = argparse.ArgumentParser(description='Dual-coding viewer.')
     parser.add_argument('base_image', help='Base (structural image)', type=str)
     parser.add_argument('--mask', type=str,

@@ -109,10 +109,10 @@ class QICanvas(FigureCanvas):
                 self._slices[i] = qi.Slice(bbox, cursor, self.directions[i],
                                            args.samples, orient=args.orient)
                 
-                (sl_final, sl_alpha) = qi.util.overlay_slice(self._slices[i], args, self.base_window,
-                                                             self.img_base, self.img_mask,
-                                                             self.img_color, self.img_color_mask,
-                                                             self.img_alpha)
+                sl_final = qi.util.overlay_slice(self._slices[i], args, self.base_window,
+                                                 self.img_base, self.img_mask,
+                                                 self.img_color, self.img_color_mask,
+                                                 self.img_alpha)
                 # Draw image
                 if self._first_time:
                     self._images[i] = self.axes[i].imshow(sl_final, origin='lower',

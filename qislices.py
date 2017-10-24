@@ -67,10 +67,10 @@ for s in range(0, slice_total):
     ax = plt.subplot(gs1[s], facecolor='black')
     print('Slice pos ', slice_pos[s, :])
     sl = qi.Slice(bbox, slice_pos[s, :], args.slice_axis, args.samples, orient=args.orient)
-    (sl_final, sl_alpha) = qi.util.overlay_slice(sl, args, window,
-                                                 img_base, img_mask,
-                                                 img_color, img_color_mask,
-                                                 img_alpha)
+    sl_final = qi.util.overlay_slice(sl, args, window,
+                                     img_base, img_mask,
+                                     img_color, img_color_mask,
+                                     img_alpha)
     ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation=args.interp)
     ax.axis('off')
     if img_contour:
