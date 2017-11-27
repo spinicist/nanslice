@@ -1,4 +1,4 @@
-# QIView - An implementation of 'Dual-Coding' #
+# Not Another Neuroimaging Slicer - nanslice #
 
 Credit / Blame / Contact - Tobias Wood - tobias.wood@kcl.ac.uk
 
@@ -12,55 +12,65 @@ If you find the tools useful the author would love to hear from you.
 
 ![Screenshot](screenshot.png)
 
-These scripts are an implementation of the 'Dual-Coding' visualisation method
-that can be found in this paper: http://dx.doi.org/10.1016/j.neuron.2012.05.001
+This is a pure Python module for creating slices through neuro-imaging datasets.
+The main motivation for building this was to implement the 'Dual-Coding'
+visualisation method that can be found in this paper: 
+http://dx.doi.org/10.1016/j.neuron.2012.05.001. However, it then expanded to
+include standard visualisation methods, and an interactive viewer for Jupyter
+notebooks.
 
-In short, instead of plotting thresholded blobs of T-statistics or p-values
+In dual-coding instead of plotting thresholded blobs of T-statistics or p-values
 on top of structural images, transparency (or alpha) is used to convey the 
-p-value, while color can be used to convey either T-statistic, or difference
-in group means etc. Finally, contours can be added at a specific p-value, e.g.
-p < 0.05. In this way, 'dual-coded' overlays contain all the information that
-standard overlays do, but also show much of the data that is 'hidden' beneath
-the p-value threshold.
+p-value of T-statistic, while color can be used to convey the effect size or
+difference in group means etc. Finally, contours can be added at a specific
+p-value, e.g. p < 0.05. In this way, 'dual-coded' overlays contain all the
+information that standard overlays do, but also show much of the data that is
+'hidden' beneath the p-value threshold.
 
 Whether you think this is useful or not will depend on your attitude towards
 p-values and thresholds. Personally, I think that sub-threshold but
 anatomically plausible blobs are at least worth *showing* to readers, who can
 then make their own mind up about significance.
 
-Finally, this is a sister project to https://github.com/spinicist/QUIT, hence
-the name. I mainly work with quantitative T1 & T2 maps, where group mean
-difference or "percent change" is a meaningful, well-defined quantity. If you
-use these tools to plot "percent BOLD signal change", I hope you know what you
-what you are doing and wish you luck with your reviewers.
+This is a sister project to https://github.com/spinicist/QUIT. I mainly work
+with quantitative T1 & T2 maps, where group mean difference or "percent change"
+is a meaningful, well-defined quantity. If you use these tools to plot "percent
+BOLD signal change", I hope you know what you what you are doing and wish you
+luck with your reviewers.
+
+# Installation #
+
+This module has not yet been uploaded to `PyPI` as it is still in development.
+Hence, to install, download or clone the git repository and then run
+`pip install .` from within the top-level directory. If you plan to update
+frequently or contribute, consider using the `pip install . -e` version.
 
 # Usage #
 
-There are two scripts - `qiview.py` is a simple interactive viewer and
-`qislices.py` can be used to generate figures for publication. They have been
-designed around the output of FSL `randomise`, but should work with other stats
-programs as well. To run `qiview` type:
+There are four ways to use this module. The first, and least user-friendly, is
+to directly import the module and use the `Slice` object to construct your own
+images. A more detailed guide on how to do this will be written in future.
 
-`python qiview.py path/to/base_image path/to/mask path/to/tstat path/to/pstat`
+The second and third are to use the `nanslicer` and `nanviewer` scripts. These
+are installed to an appropriate directory so should be available on your path.
+Run the programs without arguments to see the help message. Basic usage is to
+pass a single image, e.g. `nanslicer input.nii test.png` or
+`nanviewer input.nii`.
 
-The mask will be used to set the bounding box for the slices.
+The fourth is to use the module within a Jupyter notebook. In this case, the
+following is a bare minimum to run the interactive viewer:
 
-`qislices.py` has a help string - run `python qislices.py` to show it. Options
-are provided to choose the number of slices, colormap and the limits for color
-and alpha. 
-
-# Dependencies #
-
-I wrote this using an Anaconda distribution, with:
-* Python 3.5.2
-* Numpy 1.11.3
-* Matplotlib 2.0.0
-* Nibabel 2.0.2
-* PyQt5 5.6.0
+```
+%matplotlib nbagg
+import nanslice.jupyter as nsjupyter
+img = nib.load('img.nii.gz')
+nsjupyter.interactive(img)
+```
 
 # Performance #
 
 These are Python scripts. The core sampling/blending code was written over 3
-evenings while on the Bruker programming course. The viewer was written in
-literally 4 hours across a Monday and Tuesday. Do not expect clicking around
-images to be particularly fast, even on a beefy computer. Patches are welcome!
+evenings while on the Bruker programming course. Most of nanviewer was written
+in literally 4 hours across a Monday and Tuesday. After a refactoring, it is
+surprisingly responsive on my MacBook. The Jupyter viewer, on the other hand,
+is not wildly performant. Patches are welcome!

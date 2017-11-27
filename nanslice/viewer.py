@@ -14,9 +14,11 @@ import time
 import matplotlib
 # Make sure that we are using QT5
 matplotlib.use('Qt5Agg')
-import qi
 import numpy as np
 import nibabel as nib
+from .util import common_args, overlay_slice, alphabar, colorbar, crosshairs, sample_point
+from .box import Box
+from .slice import Slice, axis_indices, axis_map
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from PyQt5 import QtCore, QtWidgets
@@ -38,8 +40,6 @@ class QICanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding,
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-
-
         gs1 = GridSpec(1, 3)
         gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
         self.axes = [self.fig.add_subplot(gs, facecolor='black') for gs in gs1]
@@ -51,9 +51,9 @@ class QICanvas(FigureCanvas):
         self.img_contour = None
         if args.mask:
             self.img_mask = nib.load(args.mask)
-            self.bbox = qi.Box(self.img_mask, mask=True)
+            self.bbox = Box.fromMask(self.img_mask)
         else:
-            self.bbox = qi.Box(self.img_base, mask=False)
+            self.bbox = Box.fromImage(self.img_base)
         if args.color:
             self.img_color = nib.load(args.color)
             if args.color_mask:
@@ -65,7 +65,7 @@ class QICanvas(FigureCanvas):
                 gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.16, wspace=0.1, hspace=0.1)
                 # If the line below goes before the lines above, it doesn't layout correctly
                 self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
-                qi.util.alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
+                alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
                                  args.alpha_lims, args.alpha_label, alines = args.contour)
                 if args.contour_img:
                     self.img_contour = nib.load(args.contour_img)
@@ -76,7 +76,7 @@ class QICanvas(FigureCanvas):
                 gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.12, wspace=0.1, hspace=0.1)
                 # If the line below goes before the lines above, it doesn't layout correctly
                 self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
-                qi.colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
+                colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
         
         self.cursor = self.bbox.center
         self.base_window = np.percentile(self.img_base.get_data(), args.window)
@@ -106,10 +106,10 @@ class QICanvas(FigureCanvas):
                 crosshair[1].remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = qi.Slice(bbox, cursor, self.directions[i],
-                                           args.samples, orient=args.orient)
+                self._slices[i] = Slice(bbox, cursor, directions[i],
+                                        args.samples, orient=args.orient)
                 
-                sl_final = qi.util.overlay_slice(self._slices[i], args, self.base_window,
+                sl_final = overlay_slice(self._slices[i], args, self.base_window,
                                                  self.img_base, self.img_mask,
                                                  self.img_color, self.img_color_mask,
                                                  self.img_alpha)
@@ -134,8 +134,8 @@ class QICanvas(FigureCanvas):
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
-            self._crosshairs[i] = qi.util.crosshairs(self.axes[i], self.cursor, 
-                                                     self.directions[i], self.args.orient)
+            self._crosshairs[i] = crosshairs(self.axes[i], self.cursor,
+                                                  directions[i], self.args.orient)
         self._first_time = False
         #print('Update time:', (time.time() - t0)*1000, 'ms')
         self.draw()
@@ -144,16 +144,16 @@ class QICanvas(FigureCanvas):
         if event.button == 1:
             for i in range(3):
                 if event.inaxes == self.axes[i]:
-                    ind1, ind2 = qi.axis_indices(qi.axis_map[self.directions[i]], self.args.orient)
+                    ind1, ind2 = axis_indices(axis_map[self.directions[i]], self.args.orient)
                     self.cursor[ind1] = event.xdata
                     self.cursor[ind2] = event.ydata
                     self.update_figure(hold=i)
             msg = 'Cursor: ' + str(self.cursor)
             if self.args.color:
-                color_val = qi.util.sample_point(self.img_color, self.cursor, self.args.interp_order)
+                color_val = sample_point(self.img_color, self.cursor, self.args.interp_order)
                 msg = msg + ' ' + self.args.color_label + ': ' + str(color_val[0])
                 if self.args.alpha:
-                    alpha_val = qi.util.sample_point(self.img_alpha, self.cursor, self.args.interp_order)
+                    alpha_val = sample_point(self.img_alpha, self.cursor, self.args.interp_order)
                     msg = msg + ' ' + self.args.alpha_label + ': ' + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
@@ -201,11 +201,13 @@ A simple viewer for dual-coded overlays.
 
 With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html""")
 
-# pylint insists anything at module level is a constant, so disable the stupidity
-# pylint: disable=C0103
-args = qi.util.common_args().parse_args()
-application = QtWidgets.QApplication(sys.argv)
-window = QIViewWindow(args)
-window.setWindowTitle("%s" % PROG_NAME)
-window.show()
-sys.exit(application.exec_())
+def main(args=None):
+    args = common_args().parse_args()
+    application = QtWidgets.QApplication(sys.argv)
+    window = QIViewWindow(args)
+    window.setWindowTitle("%s" % PROG_NAME)
+    window.show()
+    sys.exit(application.exec_())
+
+if __name__ == "__main__":
+    main()

@@ -25,10 +25,10 @@ def interactive(img, cmap='gray', window=(2, 98)):
     import ipywidgets as ipy
 
     # Get some information about the image
-    bbox = Box(img, mask=True)
+    bbox = Box.fromMask(img)
     window_vals = np.nanpercentile(img.get_data(), window)
     # Setup figure
-    fig, axes = plt.subplots(1, 3, figsize=(11, 4))
+    fig, axes = plt.subplots(1, 3, figsize=(8, 4))
     implots = [None, None, None]
     for i in range(3):
         sl = Slice(bbox, bbox.center, i, 256, orient='clin')
@@ -55,4 +55,4 @@ def interactive(img, cmap='gray', window=(2, 98)):
     hbox = ipy.HBox(widgets.children[0:3]) # Set the sliders to horizontal layout
     vbox = ipy.VBox((hbox, widgets.children[3]))
     # iplot.widget.children[-1].layout.height = '350px'
-    display(vbox)
+    return vbox
