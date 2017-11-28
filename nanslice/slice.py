@@ -7,7 +7,7 @@ import scipy.ndimage.interpolation as ndinterp
 
 axis_map = {'x':0, 'y':1, 'z':2}
 orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
-              'preclin': ({0: 2, 1: 0, 2: 0}, {0: 1, 1: 2, 2: 1})}
+              'preclin': ({0: 2, 1: 2, 2: 0}, {0: 1, 1: 0, 2: 1})}
 def axis_indices(slice_index, orient='clin'):
     this_orient = orient_map[orient]
     return (this_orient[0][slice_index], this_orient[1][slice_index])
@@ -33,7 +33,6 @@ class Slice:
         start[ind_0] = pos[ind_0]
         dir_rt = np.zeros((3,))
         dir_up = np.zeros((3,))
-
         dir_rt[ind_1] = bbox.diag[ind_1]
         dir_up[ind_2] = bbox.diag[ind_2]
         aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)

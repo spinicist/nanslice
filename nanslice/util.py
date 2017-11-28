@@ -24,32 +24,36 @@ def center_of_mass(img):
     phys = np.dot(img.affine, np.array([idx0, idx1, idx2,1]).T)
     return phys
 
-def overlay_slice(sl, args, window,
+def overlay_slice(sl, options, window,
                   img_base, img_mask,
                   img_color, img_color_mask,
                   img_alpha):
     """Creates a slice through a base image, with a color overlay and specified alpha"""
-    sl_base = image.colorize(sl.sample(img_base, order=args.interp_order),
+    sl_base = image.colorize(sl.sample(img_base, order=options.interp_order),
                              'gray', window)
-    if args.color:
-        sl_color = sl.sample(img_color, order=args.interp_order) * args.color_scale
-        sl_color = image.colorize(sl_color, args.color_map, args.color_lims)
-        if args.color_mask:
-            sl_color_mask = sl.sample(img_color_mask, order=args.interp_order)
-            if args.color_mask_thresh:
-                sl_color_mask = sl_color_mask > args.color_mask_thresh
-            sl_color = image.mask(sl_color, sl_color_mask)
-        if args.alpha:
-            sl_alpha = sl.sample(img_alpha, order=args.interp_order)
-            sl_scaled_alpha = image.scale_clip(sl_alpha, args.alpha_lims)
+    if img_color:
+        sl_color = sl.sample(img_color, order=options.interp_order) * options.color_scale
+        if img_color_mask:
+            sl_color_mask = sl.sample(img_color_mask, order=options.interp_order)
+            if options.color_mask_thresh:
+                sl_color_mask = sl_color_mask > options.color_mask_thresh
+        elif options.color_mask_thresh:
+            sl_color_mask = sl_color > options.color_mask_thresh
+        else:
+            sl_color_mask = np.ones_like(sl_color)
+        sl_color = image.colorize(sl_color, options.color_map, options.color_lims)
+        sl_color = image.mask(sl_color, sl_color_mask)
+        if img_alpha:
+            sl_alpha = sl.sample(img_alpha, order=options.interp_order)
+            sl_scaled_alpha = image.scale_clip(sl_alpha, options.alpha_lims)
             sl_blend = image.blend(sl_base, sl_color, sl_scaled_alpha)
         else:
             sl_blend = image.blend(sl_base, sl_color, sl_color_mask)
     else:
         sl_blend = sl_base
-    if args.mask:
+    if img_mask:
         sl_final = image.mask(sl_blend,
-                              slice.sample(img_mask, args.interp_order))
+                              sl.sample(img_mask, options.interp_order))
     else:
         sl_final = sl_blend
     return sl_final
@@ -142,7 +146,7 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.xaxis.label.set_color('k')
         axes.axis('on')
 
-def common_args():
+def common_options():
     """Defines a set of common arguments that are shared between qiview and qislices"""
     parser = argparse.ArgumentParser(description='Dual-coding viewer.')
     parser.add_argument('base_image', help='Base (structural image)', type=str)
@@ -151,7 +155,7 @@ def common_args():
 
     parser.add_argument('--color', type=str,
                         help='Add color overlay')
-    parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
+    parser.add_argument('--color_lims', type=float, noptions=2, default=(-1, 1),
                         help='Colormap window, default=-1 1')
     parser.add_argument('--color_mask', type=str,
                         help='Mask color image')
@@ -166,7 +170,7 @@ def common_args():
 
     parser.add_argument('--alpha', type=str,
                         help='Image for transparency-coding of overlay')
-    parser.add_argument('--alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
+    parser.add_argument('--alpha_lims', type=float, noptions=2, default=(0.5, 1.0),
                         help='Alpha/transparency window, default=0.5 1.0')
     parser.add_argument('--alpha_label', type=str, default='1-p',
                         help='Label for alpha/transparency axis')
@@ -180,7 +184,7 @@ def common_args():
     parser.add_argument('--contour_style', type=str, action='append',
                         help='Choose contour line-style')
 
-    parser.add_argument('--window', type=float, nargs=2, default=(1, 99),
+    parser.add_argument('--window', type=float, noptions=2, default=(1, 99),
                         help='Specify base image window (in percentiles)')
     parser.add_argument('--samples', type=int, default=128,
                         help='Number of samples for slicing, default=128')
