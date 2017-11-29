@@ -81,34 +81,40 @@ def crosshairs(axis, point, direction, orient, color='g'):
     return (vline, hline)
 
 def colorbar(axes, cm_name, clims, clabel,
-             black_backg=True, show_ticks=True, tick_fmt='{:.0f}'):
+             black_backg=True, show_ticks=True, tick_fmt='{:.0f}', orient='h'):
     """Plots a 2D colorbar (color/alpha)"""
-    csteps = 64
-    asteps = 32
-    color = image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps),
-                                   [asteps, 1]), cm_name, clims)
-    alpha = np.tile(np.tile(1, asteps), [csteps, 1]).T
-    backg = np.ones((asteps, csteps, 3))
-    acmap = image.blend(backg, color, alpha)
-    axes.imshow(acmap, origin='lower', interpolation='hanning',
-                extent=(clims[0], clims[1], 0, 1),
-                aspect='auto')
+    steps = 32
+    if orient == 'h':
+        ext = (clims[0], clims[1], 0, 1)
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[np.newaxis, :], [steps, 1])
+    else:
+        ext = (0, 1, clims[0], clims[1])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
+    color = image.colorize(cdata, cm_name, clims)
+    axes.imshow(color, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
     if black_backg:
         forecolor = 'w'
     else:
         forecolor = 'k'
     if show_ticks:
-        axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
-        axes.set_xticklabels((tick_fmt.format(clims[0]),
-                              clabel,
-                              tick_fmt.format(clims[1])),
-                             color=forecolor)
+        ticks = (clims[0], np.sum(clims)/2, clims[1])
+        labels = (tick_fmt.format(clims[0]), clabel, tick_fmt.format(clims[1]))
+        if orient == 'h':
+            axes.set_xticks(ticks)
+            axes.set_xticklabels(labels, color=forecolor)
+            axes.set_yticks(())
+        else:
+            axes.set_yticks(ticks)
+            axes.set_yticklabels(labels, color=forecolor, rotation='vertical', va='center')
+            axes.set_xticks(())
     else:
-        axes.set_xticks((np.sum(clims)/2,))
-        axes.set_xticklabels((clabel,), color=forecolor)
-    axes.set_yticks(())
+        if orient == 'h':
+            axes.set_xticks((np.sum(clims)/2,))
+            axes.set_xticklabels((clabel,), color=forecolor)
+        else:
+            axes.set_yticks((np.sum(clims)/2,))
+            axes.set_yticklabels((clabel,), color=forecolor)
     axes.tick_params(axis='both', which='both', length=0)
-
     axes.spines['top'].set_color(forecolor)
     axes.spines['bottom'].set_color(forecolor)
     axes.spines['left'].set_color(forecolor)
@@ -120,31 +126,48 @@ def colorbar(axes, cm_name, clims, clabel,
 def alphabar(axes, cm_name, clims, clabel,
              alims, alabel, alines=None, alines_colors=('k',), alines_styles=('solid',),
              cprecision=1, aprecision=0,
-             black_backg=True):
+             black_backg=True, orient='h'):
     """Plots a 2D colorbar (color/alpha)"""
-    csteps = 64
-    asteps = 32
-    color = image.colorize(np.tile(np.linspace(clims[0], clims[1], csteps), [asteps, 1]),
-                           cm_name, clims)
-    alpha = np.tile(np.linspace(0, 1, asteps), [csteps, 1]).T
-    backg = np.ones((asteps, csteps, 3))
+    steps = 32
+    if orient == 'h':
+        ext = (alims[0], alims[1], clims[0], clims[1])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[np.newaxis, :], [steps, 1])
+        alpha = np.tile(np.linspace(0, 1, steps)[:, np.newaxis], [1, steps])
+    else:
+        ext = (alims[0], alims[1], clims[0], clims[1])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
+        alpha = np.tile(np.linspace(0, 1, steps)[np.newaxis, :], [steps, 1])
+    color = image.colorize(cdata, cm_name, clims)
+    
+    backg = np.ones((steps, steps, 3))
     acmap = image.blend(backg, color, alpha)
-    axes.imshow(acmap, origin='lower', interpolation='hanning',
-                extent=(clims[0], clims[1], alims[0], alims[1]),
-                aspect='auto')
-    axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
-    fmt = '{:.'+str(cprecision)+'f}'
-    axes.set_xticklabels((fmt.format(clims[0]),
-                          clabel,
-                          fmt.format(clims[1])))
-    axes.set_yticks((alims[0], np.sum(alims)/2, alims[1]))
-    fmt = '{:.'+str(aprecision)+'f}'
-    axes.set_yticklabels((fmt.format(alims[0]),
-                          alabel,
-                          fmt.format(alims[1])))
+    axes.imshow(acmap, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
+
+    cticks = (clims[0], np.sum(clims)/2, clims[1])
+    cfmt = '{:.'+str(cprecision)+'f}'
+    clabels = (cfmt.format(clims[0]), clabel, cfmt.format(clims[1]))
+    aticks = (alims[0], np.sum(alims)/2, alims[1])
+    afmt = '{:.'+str(aprecision)+'f}'
+    alabels = (afmt.format(alims[0]), alabel, afmt.format(alims[1]))
+
+    if orient == 'h':
+        axes.set_xticks(cticks)
+        axes.set_xticklabels(clabels)
+        axes.set_yticks(aticks)
+        axes.set_yticklabels(alabels, rotation='vertical')
+    else:
+        axes.set_xticks(aticks)
+        axes.set_xticklabels(alabels)
+        axes.set_yticks(cticks)
+        axes.set_yticklabels(clabels, rotation='vertical', va='center')
+    
     if alines:
         for ay, ac, astyle in zip(alines, alines_colors, alines_styles):
-            axes.axhline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
+            if orient == 'h':
+                axes.axhline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
+            else:
+                axes.axvline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
+    
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
