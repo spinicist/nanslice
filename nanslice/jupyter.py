@@ -1,28 +1,62 @@
 #!/usr/bin/env python
-from collections import namedtuple
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from . import util
 from .box import Box
 from .slice import Slice
 
-Options = namedtuple("Options",
-                     "interp_order color_map color_lims color_scale color_mask_thresh alpha_lims")
-def static(img, cmap='gray', bbox=None, point=None):
-    if not bbox:
-        bbox = Box.fromMask(img)
-    if not point:
-        point = bbox.center
+def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', img_window=(2, 98), mask=None,
+           color_img=None, color_cmap='viridis', color_window=None, color_thresh=None, color_label='',
+           alpha_img=None, alpha_window=None, alpha_label='',
+           contour_img=None, contour_values=(0.95,), contour_colors=('w',), contour_styles=('--',),
+           orient='clin', samples=128):
+    # Get some information about the image
+    if mask:
+        bbox = Box.fromMask(mask)
+    else:
+        bbox = Box.fromImage(img)
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-    for i in range(3):
-        sl = Slice(bbox, point, i, 256, orient='clin')
-        sl_img = sl.sample(img, order=0)
-        im = axes[i].imshow(sl_img, origin='lower', extent=sl.extent, cmap=cmap, vmin = 0.1)
-        axes[i].axis('off')
-        if i == 2:
-            fig.colorbar(im)
-    return (fig, axes)
+    window_vals = np.nanpercentile(img.get_data(), img_window)
+    if color_img and color_window is None:
+        color_window = np.nanpercentile(color_img.get_data(), (2, 98))
+    if alpha_img and alpha_window is None:
+        alpha_window = np.nanpercentile(alpha_img.get_data(), (2, 98))
+    
+    options = util.Options(interp_order=0, color_map=color_cmap, color_lims=color_window, color_scale=1,
+                           color_mask_thresh=color_thresh,
+                           alpha_lims=alpha_window)
+
+    ntotal = nrows*ncols
+    slice_pos = bbox.start + bbox.diag * np.linspace(lims[0], lims[1], ntotal)[:, np.newaxis]
+
+    gs1 = gridspec.GridSpec(nrows, ncols)
+    f = plt.figure(facecolor='black', figsize=(ncols*3, nrows*3))
+
+    for s in range(0, ntotal):
+        ax = plt.subplot(gs1[s], facecolor='black')
+        sl = Slice(bbox, slice_pos[s, :], axis, samples, orient=orient)
+        sl_final = util.overlay_slice(sl, options, window_vals, img, mask, color_img, None, alpha_img)
+        ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation='none')
+        ax.axis('off')
+        if contour_img:
+            sl_contour = sl.sample(contour_img, order=1)
+            ax.contour(sl_contour, levels=contour_values, origin='lower', extent=sl.extent,
+                       colors=contour_colors, linestyles=contour_styles, linewidths=1)
+
+    if color_img:
+        gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
+        gs2 = gridspec.GridSpec(1, 1)
+        gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
+        axes = plt.subplot(gs2[0], facecolor='black')
+        if alpha_img:
+            util.alphabar(axes, color_cmap, color_window, color_label, alpha_window, alpha_label)
+        else:
+            util.colorbar(axes, color_cmap, color_window, color_label)
+    else:
+        gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
+    plt.close()
+    return f
 
 def interactive(img, img_cmap='gray', img_window=(2, 98), mask=None,
                 color_img=None, color_cmap='viridis', color_window=None, color_thresh=None,

@@ -3,8 +3,8 @@
 
 Copyright Tobias C Wood 2017
 
-Utility functions for QIView module"""
-
+Utility functions for nanslice module"""
+from collections import namedtuple
 import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
@@ -23,6 +23,9 @@ def center_of_mass(img):
     idx2 = np.argmax(np.sum(img.get_data(), axis=(0,1)))
     phys = np.dot(img.affine, np.array([idx0, idx1, idx2,1]).T)
     return phys
+
+Options = namedtuple("Options",
+                     "interp_order color_map color_lims color_scale color_mask_thresh alpha_lims")
 
 def overlay_slice(sl, options, window,
                   img_base, img_mask,
@@ -57,6 +60,19 @@ def overlay_slice(sl, options, window,
     else:
         sl_final = sl_blend
     return sl_final
+
+def draw_slice(axis, sl, opts, window, img, mask,
+               color_img=None, color_mask=None, alpha_img=None,
+               contour_img=None, contour_levels=(0.95,), contour_colors='w'):
+    sliced = overlay_slice(sl, opts, window, img, mask, color_img, color_mask, alpha_img)
+    axis.imshow(sliced, origin='lower', extent=sl.extent, interpolation='none')
+    axis.axis('off')
+    if contour_img:
+        sliced_contour = sl.sample(contour_img, order=1)
+        if (sliced_contour < contour_levels[0]).any() and (sliced_contour > contour_levels[0]).any():
+            axis.contour(sliced_contour, levels=contour_levels,
+                        origin='lower', extent=sl.extent,
+                        colors=contour_colors, linewidths=1)
 
 def crosshairs(axis, point, direction, orient, color='g'):
     ind1, ind2 = axis_indices(axis_map[direction], orient)
@@ -103,6 +119,7 @@ def colorbar(axes, cm_name, clims, clabel,
 
 def alphabar(axes, cm_name, clims, clabel,
              alims, alabel, alines=None, alines_colors=('k',), alines_styles=('solid',),
+             cprecision=1, aprecision=0,
              black_backg=True):
     """Plots a 2D colorbar (color/alpha)"""
     csteps = 64
@@ -116,13 +133,15 @@ def alphabar(axes, cm_name, clims, clabel,
                 extent=(clims[0], clims[1], alims[0], alims[1]),
                 aspect='auto')
     axes.set_xticks((clims[0], np.sum(clims)/2, clims[1]))
-    axes.set_xticklabels(('{:.0f}'.format(clims[0]),
+    fmt = '{:.'+str(cprecision)+'f}'
+    axes.set_xticklabels((fmt.format(clims[0]),
                           clabel,
-                          '{:.0f}'.format(clims[1])))
+                          fmt.format(clims[1])))
     axes.set_yticks((alims[0], np.sum(alims)/2, alims[1]))
-    axes.set_yticklabels(('{:.2f}'.format(alims[0]),
+    fmt = '{:.'+str(aprecision)+'f}'
+    axes.set_yticklabels((fmt.format(alims[0]),
                           alabel,
-                          '{:.2f}'.format(alims[1])))
+                          fmt.format(alims[1])))
     if alines:
         for ay, ac, astyle in zip(alines, alines_colors, alines_styles):
             axes.axhline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
@@ -147,7 +166,7 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.axis('on')
 
 def common_options():
-    """Defines a set of common arguments that are shared between qiview and qislices"""
+    """Defines a set of common arguments that are shared between viewer and slicer"""
     parser = argparse.ArgumentParser(description='Dual-coding viewer.')
     parser.add_argument('base_image', help='Base (structural image)', type=str)
     parser.add_argument('--mask', type=str,
