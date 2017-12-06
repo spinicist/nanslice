@@ -32,3 +32,31 @@ def mask(img, img_mask, back=np.array((0, 0, 0))):
 def blur(img, sigma=1):
     """Blur an image with a Gaussian kernel"""
     return filters.gaussian_filter(img, sigma)
+
+def checkerboard(img1, img2, square_size=16):
+    """Combine two images in a checkerboard pattern, useful for checking image """
+    """registration quality. Idea stolen from @ramaana_ on Twitter"""
+    if (img1.shape != img2.shape):
+        raise Exception('Image shape do not match:' + str(img1.shape) + ' vs:' + str(img2.shape))
+    shape = img1.shape
+    img3 = np.zeros_like(img1)
+    from1 = True
+    r = 0
+    rs = square_size
+    while r < shape[0]:
+        c = 0
+        cs = square_size
+        while c < shape[1]:
+            if from1:
+                img3[r:r+rs, c:c+cs, :] = img1[r:r+rs, c:c+cs, :]
+            else:
+                img3[r:r+rs, c:c+cs, :] = img2[r:r+rs, c:c+cs, :]
+            c = c + cs
+            if (c + cs) > shape[1]:
+                cs = shape[1] - c
+            from1 = not from1
+        r = r + rs
+        if (r + rs) > shape[0]:
+            rs = shape[0] - r
+        from1 = not from1
+    return img3

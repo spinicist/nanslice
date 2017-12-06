@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from . import util
+from . import util, image
 from .box import Box
 from .slice import Slice
 
@@ -57,6 +57,32 @@ def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', im
         gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
     plt.close()
     return f
+
+def checkerboard(img1, img2, mask=None, orient='clin', samples=128):
+    """Combine two images in a checkerboard pattern, useful for checking image """
+    """registration quality. Idea stolen from @ramaana_ on Twitter"""
+    # Get some information about the image
+    if mask:
+        bbox = Box.fromMask(mask)
+    else:
+        bbox = Box.fromImage(img1)
+    window1 = np.nanpercentile(img1.get_data(), (2, 98))
+    window2 = np.nanpercentile(img2.get_data(), (2, 98))
+    # Setup figure
+    fig, axes = plt.subplots(1, 3, figsize=(9, 3), facecolor='w')
+    implots = [None, None, None]
+    init = False
+
+    for i in range(3):
+        sl = Slice(bbox, bbox.center, i, samples=samples, orient=orient)
+        sl_1 = image.colorize(sl.sample(img1, 1), 'gray', window1)
+        sl_2 = image.colorize(sl.sample(img2, 1), 'gray', window2)
+        sl_c = image.checkerboard(sl_1, sl_2)
+        axes[i].imshow(sl_c, origin='lower', extent=sl.extent,
+                       interpolation='nearest')
+        axes[i].axis('off')
+    plt.close()
+    return fig
 
 def interactive(img, img_cmap='gray', img_window=(2, 98), mask=None,
                 color_img=None, color_cmap='viridis', color_window=None, color_thresh=None,
