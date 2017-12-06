@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from .util import common_arguments, overlay_slice, alphabar, colorbar
 from .box import Box
-from .slice import Slice
+from .slicer import Slicer
 
 def main(args=None):
     parser = common_arguments()

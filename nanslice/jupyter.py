@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from . import util, image
 from .box import Box
-from .slice import Slice
+from .slicer import Slicer
 
 def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', img_window=(2, 98), mask=None,
            color_img=None, color_cmap='viridis', color_window=None, color_thresh=None, color_label='',

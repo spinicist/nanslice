@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Box.py
 
-A simple bounding-box class"""
+Contains a simple bounding-box class"""
 
 import numpy as np
 
@@ -22,6 +22,7 @@ class Box:
 
     @classmethod
     def fromImage(cls, img):
+        """Creates a bounding box from the corners defined by an image volume"""
         img_shape = img.get_data().shape
         corners = np.array([[0, 0, 0, 1.],
                             [img_shape[0], img_shape[1], img_shape[2], 1.]])
@@ -32,7 +33,10 @@ class Box:
     
     @classmethod
     def fromMask(cls, img, padding=0):
-        """Finds the bounding box of non-zero voxels"""
+        """Creates a bounding box that encloses all non-zero voxels in a volume.
+        Parameters:
+            img:     The volume to create the bounding-box from
+            padding: Number of extra voxels to pad the resulting box by"""
         data = img.get_data()
 
         # Individual axis min/maxes
@@ -51,15 +55,17 @@ class Box:
 
     @property
     def start(self):
+        """Returns the 'start' corner of the bounding-box"""
         return self._c[0]
 
     @property
     def end(self):
+        """Returns the 'end' corner of the bounding-box (opposite the start)"""
         return self._c[1]
 
     @property
     def diag(self):
-        """Returns the diagonal of the bounding-box"""
+        """Returns the vector diagonal of the bounding-box"""
         return self._diag
 
     @property

@@ -18,7 +18,7 @@ import numpy as np
 import nibabel as nib
 from .util import common_arguments, overlay_slice, alphabar, colorbar, crosshairs, sample_point
 from .box import Box
-from .slice import Slice, axis_indices, axis_map
+from .slicer import Slicer, axis_indices, axis_map
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from PyQt5 import QtCore, QtWidgets

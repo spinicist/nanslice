@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 from . import image
-from .slice import axis_map, axis_indices
+from .slicer import axis_map, axis_indices
 
 def sample_point(img, point, order=1):
     scale = np.mat(img.get_affine()[0:3, 0:3]).I

@@ -1,24 +1,31 @@
 #!/usr/bin/env python
-"""Slice.py
+"""slicer.py
 
-The core Slice object"""
+This module contains the core Slicer object that samples images to produce
+slices."""
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 
 axis_map = {'x':0, 'y':1, 'z':2}
 orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
               'preclin': ({0: 2, 1: 2, 2: 0}, {0: 1, 1: 0, 2: 1})}
-def axis_indices(slice_index, orient='clin'):
-    this_orient = orient_map[orient]
-    return (this_orient[0][slice_index], this_orient[1][slice_index])
-
-class Slice:
-    """A very simple slice class. Stores physical & voxel space co-ords
+def axis_indices(axis, orient='clin'):
+    """Returns a pair of indices corresponding to right/up for the given orientation.
     Parameters:
+        axis:   The perpendicular axis to the slice. Use axis_map to convert between x/y/z and 0/1/2
+        orient: Either 'clin' or 'preclin'
+    """
+    this_orient = orient_map[orient]
+    return (this_orient[0][axis], this_orient[1][axis])
+
+class Slicer:
+    """The Slicer class. When constructed, creates an array of physical space co-ords, which are
+    used by sample() to sample a 3D volume.
+    Constructor Parameters:
         bbox:    Bounding-Box that you want to slice
         pos:     Position within the box to generate the slice through
-        axis:    Which axis you want to slice on
-        samples: Number of samples across the slice
+        axis:    Which axis you want to slice across
+        samples: Number of samples in the 'right' direction
         orient:  'clin' or 'preclin'
     """
 
@@ -59,6 +66,6 @@ class Slice:
         return self._voxel_space
 
     def sample(self, img, order):
-        """Samples an image using this slice"""
+        """Samples a volume using the calculated slice co-ordinates"""
         physical = self.get_physical(img.affine)
         return ndinterp.map_coordinates(img.get_data().squeeze(), physical, order=order).T
