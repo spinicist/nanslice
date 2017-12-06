@@ -16,7 +16,7 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 import numpy as np
 import nibabel as nib
-from .util import common_args, overlay_slice, alphabar, colorbar, crosshairs, sample_point
+from .util import common_arguments, overlay_slice, alphabar, colorbar, crosshairs, sample_point
 from .box import Box
 from .slice import Slice, axis_indices, axis_map
 from matplotlib.figure import Figure
@@ -202,7 +202,7 @@ A simple viewer for dual-coded overlays.
 With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html""")
 
 def main(args=None):
-    args = common_args().parse_args()
+    args = common_arguments().parse_args()
     application = QtWidgets.QApplication(sys.argv)
     window = QIViewWindow(args)
     window.setWindowTitle("%s" % PROG_NAME)

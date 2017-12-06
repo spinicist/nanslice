@@ -188,7 +188,7 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.xaxis.label.set_color('k')
         axes.axis('on')
 
-def common_options():
+def common_arguments():
     """Defines a set of common arguments that are shared between viewer and slicer"""
     parser = argparse.ArgumentParser(description='Dual-coding viewer.')
     parser.add_argument('base_image', help='Base (structural image)', type=str)
@@ -197,7 +197,7 @@ def common_options():
 
     parser.add_argument('--color', type=str,
                         help='Add color overlay')
-    parser.add_argument('--color_lims', type=float, noptions=2, default=(-1, 1),
+    parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
                         help='Colormap window, default=-1 1')
     parser.add_argument('--color_mask', type=str,
                         help='Mask color image')
@@ -212,7 +212,7 @@ def common_options():
 
     parser.add_argument('--alpha', type=str,
                         help='Image for transparency-coding of overlay')
-    parser.add_argument('--alpha_lims', type=float, noptions=2, default=(0.5, 1.0),
+    parser.add_argument('--alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
                         help='Alpha/transparency window, default=0.5 1.0')
     parser.add_argument('--alpha_label', type=str, default='1-p',
                         help='Label for alpha/transparency axis')
@@ -226,7 +226,7 @@ def common_options():
     parser.add_argument('--contour_style', type=str, action='append',
                         help='Choose contour line-style')
 
-    parser.add_argument('--window', type=float, noptions=2, default=(1, 99),
+    parser.add_argument('--window', type=float, nargs=2, default=(1, 99),
                         help='Specify base image window (in percentiles)')
     parser.add_argument('--samples', type=int, default=128,
                         help='Number of samples for slicing, default=128')

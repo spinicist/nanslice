@@ -7,12 +7,12 @@ import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from .util import common_args, overlay_slice, alphabar, colorbar
+from .util import common_arguments, overlay_slice, alphabar, colorbar
 from .box import Box
 from .slice import Slice
 
 def main(args=None):
-    parser = common_args()
+    parser = common_arguments()
     parser.add_argument('output', help='Output image name', type=str)
     parser.add_argument('--slice_rows', type=int, default=4, help='Number of rows of slices')
     parser.add_argument('--slice_cols', type=int, default=5, help='Number of columns of slices')

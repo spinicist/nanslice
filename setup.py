@@ -29,8 +29,8 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'nanslicer=nanslice.slicer:main',
-            'nanviewer=nanslice.viewer:main',
+            'nanslicer=nanslice.nanslicer:main',
+            'nanviewer=nanslice.nanviewer:main',
         ],
     },
 )
