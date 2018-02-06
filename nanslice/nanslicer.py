@@ -17,10 +17,11 @@ def main(args=None):
     parser.add_argument('--slice_rows', type=int, default=4, help='Number of rows of slices')
     parser.add_argument('--slice_cols', type=int, default=5, help='Number of columns of slices')
     parser.add_argument('--slice_axis', type=str, default='z', help='Axis to slice along (x/y/z)')
+    parser.add_argument('--three_axis', help='Make a 3 axis (x,y,z) plot', action='store_true')
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
                         help='Slice between these limits along the axis, default=0.1 0.9')
-    parser.add_argument('--figsize', type=float, nargs=2, default=(6, 4),
-                        help='Figure size in inches')
+    parser.add_argument('--figsize', type=float, nargs=2, default=(6, 4), help='Figure size in inches')
+    parser.add_argument('--dpi', type=int, default=150, help='DPI for output figure')
     args = parser.parse_args()
 
     print('*** Loading files')
@@ -58,9 +59,22 @@ def main(args=None):
     else:
         bbox = Box.fromImage(img_base)
     print(bbox)
-    slice_total = args.slice_rows*args.slice_cols
+    if args.three_axis:
+        args.slice_rows = 1
+        args.slice_cols = 3
+        args.slice_axis = ['x', 'y', 'z']
+        slice_total = 3
+        slice_pos = np.tile(bbox.center, (3, 1))
+    else:
+        slice_total = args.slice_rows*args.slice_cols
+        args.slice_axis = [args.slice_axis] * slice_total
+        slice_pos = bbox.start + bbox.diag * np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)[:, np.newaxis]
     print(slice_total, ' slices in ', args.slice_rows, ' rows and ', args.slice_cols, ' columns')
-    slice_pos = bbox.start + bbox.diag * np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)[:, np.newaxis]
+
+    if args.orient == 'preclin':
+        origin = 'upper'
+    else:
+        origin = 'lower'
 
     gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
     f = plt.figure(facecolor='black', figsize=args.figsize)
@@ -69,14 +83,14 @@ def main(args=None):
     for s in range(0, slice_total):
         ax = plt.subplot(gs1[s], facecolor='black')
         print('Slice pos ', slice_pos[s, :])
-        sl = Slice(bbox, slice_pos[s, :], args.slice_axis, args.samples, orient=args.orient)
+        sl = Slicer(bbox, slice_pos[s, :], args.slice_axis[s], args.samples, orient=args.orient)
         sl_final = overlay_slice(sl, args, window,
                                  img_base, img_mask, img_color, img_color_mask, img_alpha)
-        ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation=args.interp)
+        ax.imshow(sl_final, origin=origin, extent=sl.extent, interpolation=args.interp)
         ax.axis('off')
         if img_contour:
             sl_contour = sl.sample(img_contour, order=args.interp_order)
-            ax.contour(sl_contour, levels=args.contour, origin='lower', extent=sl.extent,
+            ax.contour(sl_contour, levels=args.contour, origin=origin, extent=sl.extent,
                     colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
     if args.color:
@@ -93,8 +107,8 @@ def main(args=None):
     else:
         gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
     print('*** Saving')
-    print('Writing file: ', args.output)
-    f.savefig(args.output, facecolor=f.get_facecolor(), edgecolor='none')
+    print('Writing file: ', args.output, 'at', args.dpi, ' DPI')
+    f.savefig(args.output, facecolor=f.get_facecolor(), edgecolor='none', dpi=args.dpi)
     plt.close(f)
 
 if __name__ == "__main__":
