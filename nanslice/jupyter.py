@@ -11,6 +11,7 @@ def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', im
            alpha_img=None, alpha_window=None, alpha_label='',
            contour_img=None, contour_values=(0.95,), contour_colors=('w',), contour_styles=('--',),
            orient='clin', samples=128):
+    """Draws a grid of slices through an image"""
     # Get some information about the image
     if mask:
         bbox = Box.fromMask(mask)
@@ -35,13 +36,13 @@ def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', im
 
     for s in range(0, ntotal):
         ax = plt.subplot(gs1[s], facecolor='black')
-        sl = Slice(bbox, slice_pos[s, :], axis, samples, orient=orient)
-        sl_final = util.overlay_slice(sl, options, window_vals, img, mask, color_img, None, alpha_img)
-        ax.imshow(sl_final, origin='lower', extent=sl.extent, interpolation='none')
+        slr = Slicer(bbox, slice_pos[s, :], axis, samples, orient=orient)
+        sl_final = util.overlay_slice(slr, options, window_vals, img, mask, color_img, None, alpha_img)
+        ax.imshow(sl_final, origin='lower', extent=slr.extent, interpolation='none')
         ax.axis('off')
         if contour_img:
-            sl_contour = sl.sample(contour_img, order=1)
-            ax.contour(sl_contour, levels=contour_values, origin='lower', extent=sl.extent,
+            sl_contour = slr.sample(contour_img, order=1)
+            ax.contour(sl_contour, levels=contour_values, origin='lower', extent=slr.extent,
                        colors=contour_colors, linestyles=contour_styles, linewidths=1)
 
     if color_img:
@@ -74,13 +75,48 @@ def checkerboard(img1, img2, mask=None, orient='clin', samples=128):
     init = False
 
     for i in range(3):
-        sl = Slice(bbox, bbox.center, i, samples=samples, orient=orient)
-        sl_1 = image.colorize(sl.sample(img1, 1), 'gray', window1)
-        sl_2 = image.colorize(sl.sample(img2, 1), 'gray', window2)
+        slr = Slicer(bbox, bbox.center, i, samples=samples, orient=orient)
+        sl_1 = image.colorize(slr.sample(img1, 1), 'gray', window1)
+        sl_2 = image.colorize(slr.sample(img2, 1), 'gray', window2)
         sl_c = image.checkerboard(sl_1, sl_2)
-        axes[i].imshow(sl_c, origin='lower', extent=sl.extent,
+        axes[i].imshow(sl_c, origin='lower', extent=slr.extent,
                        interpolation='nearest')
         axes[i].axis('off')
+    plt.close()
+    return fig
+
+def cross_sections(img, img_cmap='gray', img_window=(2, 98), mask=None,
+                   color_img=None, color_cmap='viridis', color_window=None, color_thresh=None,
+                   alpha_img=None, alpha_window=None,
+                   orient='clin', samples=128):
+    """Draw a standard 3-plane view through the center of the image"""
+    # Get some information about the image
+    if mask:
+        bbox = Box.fromMask(mask)
+    else:
+        bbox = Box.fromImage(img)
+    window_vals = np.nanpercentile(img.get_data(), img_window)
+    # Setup figure
+    fig, axes = plt.subplots(1, 3, figsize=(9, 3), facecolor='black')
+    implots = [None, None, None]
+
+    if color_img and color_window is None:
+        color_window = np.nanpercentile(color_img.get_data(), (2, 98))
+    if alpha_img and alpha_window is None:
+        alpha_window = np.nanpercentile(alpha_img.get_data(), (2, 98))
+
+    options = util.Options(interp_order=0, color_map=color_cmap, color_lims=color_window, color_scale=1,
+                      color_mask_thresh=color_thresh,
+                      alpha_lims=alpha_window)
+
+    for i in range(3):
+        slr = Slicer(bbox, bbox.center, i, samples=samples, orient=orient)
+        sl_final = util.overlay_slice(slr, options, window_vals,
+                                      img, mask, color_img, None, alpha_img)
+        implots[i] = axes[i].imshow(sl_final, origin='lower', extent=slr.extent,
+                                    interpolation='nearest')
+        axes[i].axis('off')
+    fig.tight_layout()
     plt.close()
     return fig
 
@@ -106,13 +142,13 @@ def interactive(img, img_cmap='gray', img_window=(2, 98), mask=None,
     if alpha_img and alpha_window is None:
         alpha_window = np.nanpercentile(alpha_img.get_data(), (2, 98))
     
-    options = Options(interp_order=0, color_map=color_cmap, color_lims=color_window, color_scale=1,
+    options = util.Options(interp_order=0, color_map=color_cmap, color_lims=color_window, color_scale=1,
                       color_mask_thresh=color_thresh,
                       alpha_lims=alpha_window)
 
     def wrap_sections(X, Y, Z):
         for i in range(3):
-            sl = Slice(bbox, (X, Y, Z), i, samples=samples, orient=orient)
+            sl = Slicer(bbox, (X, Y, Z), i, samples=samples, orient=orient)
             sl_final = util.overlay_slice(sl, options, window_vals,
                                           img, mask, color_img, None, alpha_img)
             if init:

@@ -72,3 +72,8 @@ class Box:
     def center(self):
         """Returns the geometric center of the bounding-box"""
         return self._center
+
+    def slice_positions(self, num_slices, start=0, end=1):
+        """Returns an array of slice positions along the specified axis"""
+        slice_pos = self.start + self.diag * np.linspace(start, end, num_slices)[:, np.newaxis]
+        return slice_pos
