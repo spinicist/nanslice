@@ -81,7 +81,7 @@ def crosshairs(axis, point, direction, orient, color='g'):
     return (vline, hline)
 
 def colorbar(axes, cm_name, clims, clabel,
-             black_backg=True, show_ticks=True, tick_fmt='{:.0f}', orient='h'):
+             black_backg=True, show_ticks=True, tick_fmt='{:.1f}', orient='h'):
     """Plots a 2D colorbar (color/alpha)"""
     steps = 32
     if orient == 'h':

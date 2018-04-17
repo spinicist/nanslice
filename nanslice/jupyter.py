@@ -5,6 +5,7 @@ import matplotlib.gridspec as gridspec
 from . import util, image
 from .box import Box
 from .slicer import Slicer
+from .layer import Layer, overlay
 
 def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', img_window=(2, 98), mask=None,
            color_img=None, color_cmap='viridis', color_window=None, color_thresh=None, color_label='',
@@ -85,37 +86,28 @@ def checkerboard(img1, img2, mask=None, orient='clin', samples=128):
     plt.close()
     return fig
 
-def cross_sections(img, img_cmap='gray', img_window=(2, 98), mask=None,
-                   color_img=None, color_cmap='viridis', color_window=None, color_thresh=None,
-                   alpha_img=None, alpha_window=None,
-                   orient='clin', samples=128):
+def three_plane(img, cmap=None, clim=None, label='', mask=None, orient='clin', samples=128):
     """Draw a standard 3-plane view through the center of the image"""
     # Get some information about the image
+    base = Layer(img, cmap=cmap, clim=clim, mask=mask)
     if mask:
-        bbox = Box.fromMask(mask)
+        bbox = Box.fromMask(base.mask_image)
     else:
-        bbox = Box.fromImage(img)
-    window_vals = np.nanpercentile(img.get_data(), img_window)
+        bbox = Box.fromImage(base.image)
     # Setup figure
-    fig, axes = plt.subplots(1, 3, figsize=(9, 3), facecolor='black')
+    if cmap:
+        fig, axes = plt.subplots(1, 4, figsize=(12, 3), facecolor='black')
+    else:
+        fig, axes = plt.subplots(1, 3, figsize=(9, 3), facecolor='black')
     implots = [None, None, None]
-
-    if color_img and color_window is None:
-        color_window = np.nanpercentile(color_img.get_data(), (2, 98))
-    if alpha_img and alpha_window is None:
-        alpha_window = np.nanpercentile(alpha_img.get_data(), (2, 98))
-
-    options = util.Options(interp_order=0, color_map=color_cmap, color_lims=color_window, color_scale=1,
-                      color_mask_thresh=color_thresh,
-                      alpha_lims=alpha_window)
-
     for i in range(3):
         slr = Slicer(bbox, bbox.center, i, samples=samples, orient=orient)
-        sl_final = util.overlay_slice(slr, options, window_vals,
-                                      img, mask, color_img, None, alpha_img)
-        implots[i] = axes[i].imshow(sl_final, origin='lower', extent=slr.extent,
+        blended_slice = overlay(slr, base, None, 1)
+        implots[i] = axes[i].imshow(blended_slice, origin='lower', extent=slr.extent,
                                     interpolation='nearest')
         axes[i].axis('off')
+    if cmap:
+        util.colorbar(axes[3], base.cmap, base.clim, label, black_backg=True, orient='v')
     fig.tight_layout()
     plt.close()
     return fig
