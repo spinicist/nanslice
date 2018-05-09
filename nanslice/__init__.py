@@ -9,4 +9,4 @@ from . import util
 from .box import Box
 from .slicer import Slicer, axis_indices, axis_map
 
-from .jupyter import three_plane
+from .jupyter import three_plane, slices

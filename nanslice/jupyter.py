@@ -7,58 +7,43 @@ from .box import Box
 from .slicer import Slicer
 from .layer import Layer, overlay
 
-def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9), img_cmap='gray', img_window=(2, 98), mask=None,
-           color_img=None, color_cmap='viridis', color_window=None, color_thresh=None, color_label='',
-           alpha_img=None, alpha_window=None, alpha_label='',
+def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9),
+           cmap=None, clim=None, label='',
+           mask=None, overlays=None,
            contour_img=None, contour_values=(0.95,), contour_colors=('w',), contour_styles=('--',),
-           orient='clin', samples=128):
+           orient='clin', samples=256):
     """Draws a grid of slices through an image"""
-    # Get some information about the image
+    base = Layer(img, cmap=cmap, clim=clim, mask=mask)
     if mask:
-        bbox = Box.fromMask(mask)
+        bbox = Box.fromMask(base.mask_image)
     else:
-        bbox = Box.fromImage(img)
-
-    window_vals = np.nanpercentile(img.get_data(), img_window)
-    if color_img and color_window is None:
-        color_window = np.nanpercentile(color_img.get_data(), (2, 98))
-    if alpha_img and alpha_window is None:
-        alpha_window = np.nanpercentile(alpha_img.get_data(), (2, 98))
-    
-    options = util.Options(interp_order=0, color_map=color_cmap, color_lims=color_window, color_scale=1,
-                           color_mask_thresh=color_thresh,
-                           alpha_lims=alpha_window)
-
+        bbox = Box.fromImage(base.image)
     ntotal = nrows*ncols
     slice_pos = bbox.start + bbox.diag * np.linspace(lims[0], lims[1], ntotal)[:, np.newaxis]
 
     gs1 = gridspec.GridSpec(nrows, ncols)
-    f = plt.figure(facecolor='black', figsize=(ncols*3, nrows*3))
+    fig = plt.figure(facecolor='black', figsize=(ncols*3, nrows*3))
 
     for s in range(0, ntotal):
-        ax = plt.subplot(gs1[s], facecolor='black')
+        axes = plt.subplot(gs1[s], facecolor='black')
         slr = Slicer(bbox, slice_pos[s, :], axis, samples, orient=orient)
-        sl_final = util.overlay_slice(slr, options, window_vals, img, mask, color_img, None, alpha_img)
-        ax.imshow(sl_final, origin='lower', extent=slr.extent, interpolation='none')
-        ax.axis('off')
+        sl_final = overlay(slr, base, overlays, 1)
+        axes.imshow(sl_final, origin='lower', extent=slr.extent, interpolation='nearest')
+        axes.axis('off')
         if contour_img:
             sl_contour = slr.sample(contour_img, order=1)
             ax.contour(sl_contour, levels=contour_values, origin='lower', extent=slr.extent,
                        colors=contour_colors, linestyles=contour_styles, linewidths=1)
 
-    if color_img:
-        gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
+    if cmap:
+        gs1.update(left=0.01, right=0.9, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
         gs2 = gridspec.GridSpec(1, 1)
-        gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
+        gs2.update(left=0.9, right=0.99, bottom=0.05, top=0.95, wspace=0.1, hspace=0.1)
         axes = plt.subplot(gs2[0], facecolor='black')
-        if alpha_img:
-            util.alphabar(axes, color_cmap, color_window, color_label, alpha_window, alpha_label)
-        else:
-            util.colorbar(axes, color_cmap, color_window, color_label)
-    else:
-        gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
+        util.colorbar(axes, base.cmap, base.clim, label, black_backg=True, orient='v')
+    fig.tight_layout()
     plt.close()
-    return f
+    return fig
 
 def checkerboard(img1, img2, mask=None, orient='clin', samples=128):
     """Combine two images in a checkerboard pattern, useful for checking image """
@@ -86,25 +71,24 @@ def checkerboard(img1, img2, mask=None, orient='clin', samples=128):
     plt.close()
     return fig
 
-def three_plane(img, cmap=None, clim=None, label='', mask=None, orient='clin', samples=128):
+def three_plane(img,
+                cmap=None, clim=None, label='',
+                mask=None, overlays=None,
+                orient='clin', samples=128):
     """Draw a standard 3-plane view through the center of the image"""
-    # Get some information about the image
     base = Layer(img, cmap=cmap, clim=clim, mask=mask)
     if mask:
         bbox = Box.fromMask(base.mask_image)
     else:
         bbox = Box.fromImage(base.image)
-    # Setup figure
     if cmap:
         fig, axes = plt.subplots(1, 4, figsize=(12, 3), facecolor='black')
     else:
         fig, axes = plt.subplots(1, 3, figsize=(9, 3), facecolor='black')
-    implots = [None, None, None]
     for i in range(3):
         slr = Slicer(bbox, bbox.center, i, samples=samples, orient=orient)
-        blended_slice = overlay(slr, base, None, 1)
-        implots[i] = axes[i].imshow(blended_slice, origin='lower', extent=slr.extent,
-                                    interpolation='nearest')
+        blended_slice = overlay(slr, base, overlays, 1)
+        axes[i].imshow(blended_slice, origin='lower', extent=slr.extent, interpolation='nearest')
         axes[i].axis('off')
     if cmap:
         util.colorbar(axes[3], base.cmap, base.clim, label, black_backg=True, orient='v')
