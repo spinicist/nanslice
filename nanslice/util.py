@@ -4,12 +4,27 @@
 Copyright Tobias C Wood 2017
 
 Utility functions for nanslice module"""
-from collections import namedtuple
+from pathlib import Path
 import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
+from nibabel import load
 from . import image
 from .slicer import axis_map, axis_indices
+
+def check_path(maybe_path):
+    """Helper function to check if an object is path-like"""
+    if isinstance(maybe_path, Path) or isinstance(maybe_path, str):
+        return True
+    else:
+        return False
+
+def ensure_image(maybe_path):
+    """Helper function that lets either images or paths be passed around"""
+    if check_path(maybe_path):
+        return load(str(maybe_path))
+    else:
+        return maybe_path
 
 def sample_point(img, point, order=1):
     scale = np.mat(img.get_affine()[0:3, 0:3]).I
@@ -23,9 +38,6 @@ def center_of_mass(img):
     idx2 = np.argmax(np.sum(img.get_data(), axis=(0,1)))
     phys = np.dot(img.affine, np.array([idx0, idx1, idx2,1]).T)
     return phys
-
-Options = namedtuple("Options",
-                     "interp_order color_map color_lims color_scale color_mask_thresh alpha_lims")
 
 def overlay_slice(sl, options, window,
                   img_base, img_mask,

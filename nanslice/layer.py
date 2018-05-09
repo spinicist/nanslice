@@ -4,18 +4,10 @@
 Contains the Layer class which stores settings for each layer (image to sample,
 cmap, transparency, etc., and the overlay function for combining layers
 """
-
-from pathlib import Path
 from numpy import nanpercentile, ones_like
 from nibabel import load
 from . import image
-
-def check_path(maybe_path):
-    """Helper function to check if an object is path-like"""
-    if isinstance(maybe_path, Path) or isinstance(maybe_path, str):
-        return True
-    else:
-        return False
+from .util import ensure_image, check_path
 
 class Layer:
     """The Layer class. Keeps tabs on the image, color-map & transparency value"""
@@ -24,10 +16,7 @@ class Layer:
                  cmap=None, clim=None,
                  mask=None, mask_threshold=None,
                  alpha=None, alpha_lims=None):
-        if check_path(image):
-            self.image = load(str(image))
-        else:
-            self.image = image
+        self.image = ensure_image(image)
         self.scale = scale
         if cmap:
             self.cmap = cmap
@@ -37,10 +26,7 @@ class Layer:
             self.clim = clim
         else:
             self.clim = nanpercentile(self.image.get_data(), (2, 98))
-        if check_path(mask):
-            self.mask_image = load(str(mask))
-        else:
-            self.mask_image = mask
+        self.mask_image = ensure_image(mask)
         if mask_threshold:
             self.mask_threshold = mask_threshold
         else:
@@ -80,6 +66,6 @@ def overlay(slicer, base, overlays, interp_order):
                 alpha_slice = ones_like(over_slice)
                 base_slice = image.blend(base_slice, over_slice, alpha_slice)
     if base.mask_image:
-        mask_slice = slicer.sample(base.mask_image, interp_order)
+        mask_slice = slicer.sample(base.mask_image, interp_order) > 0
         base_slice = image.mask(base_slice, mask_slice)
     return base_slice
