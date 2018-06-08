@@ -3,21 +3,71 @@
 
 # This code is subject to the terms of the Mozilla Public License. A copy can be
 # found in the root directory of the project.
+import argparse
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from .util import common_arguments, overlay_slice, alphabar, colorbar
+from .util import overlay_slice, alphabar, colorbar
 from .box import Box
 from .slicer import Slicer
-
+from .layer import Layer, overlay_slices
 def main(args=None):
-    parser = common_arguments()
+    parser = argparse.ArgumentParser(description='Dual-coding viewer.')
+    parser.add_argument('base_image', help='Base (structural image)', type=str)
     parser.add_argument('output', help='Output image name', type=str)
+    parser.add_argument('--mask', type=str,
+                        help='Mask image')
+    parser.add_argument('--base_map', type=str, default='RdYlBu_r',
+                        help='Base image colormap to use from Matplotlib, default = RdYlBu_r')
+    parser.add_argument('--base_lims', type=float, nargs=2, default=None,
+                        help='Specify base image window')
+    parser.add_argument('--base_scale', type=float, default=1.0,
+                        help='Scaling for base image before mapping, default=1.0')
+    parser.add_argument('--base_label', type=str, default='',
+                        help='Label for base color axis')
+
+    parser.add_argument('--overlay', type=str,
+                        help='Add color overlay')
+    parser.add_argument('--overlay_lims', type=float, nargs=2, default=(-1, 1),
+                        help='Overlay window, default=-1 1')
+    parser.add_argument('--overlay_mask', type=str,
+                        help='Mask color image')
+    parser.add_argument('--overlay_mask_thresh', type=float,
+                        help='Overlay mask threshold')
+    parser.add_argument('--overlay_scale', type=float, default=1.0,
+                        help='Scaling for overlay image before mapping, default=1.0')
+    parser.add_argument('--overlay_label', type=str, default='',
+                        help='Label for overlay color axis')
+    parser.add_argument('--overlay_alpha', type=str,
+                        help='Image for transparency-coding of overlay')
+    parser.add_argument('--overlay_alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
+                        help='Overlay Alpha/transparency window, default=0.5 1.0')
+    parser.add_argument('--overlay_alpha_label', type=str, default='1-p',
+                        help='Label for overlay alpha/transparency axis')
+    parser.add_argument('--overlay_contour_image', type=str,
+                        help='Image to define contour (if none, use alpha image)')
+    parser.add_argument('--overlay_contour', type=float, action='append',
+                        help='Add an alpha image contour (can be multiple)')
+    parser.add_argument('--overlay_contour_color', type=str, action='append',
+                        help='Choose contour colour')
+    parser.add_argument('--overlay_contour_style', type=str, action='append',
+                        help='Choose contour line-style')
+
+    parser.add_argument('--samples', type=int, default=128,
+                        help='Number of samples for slicing, default=128')
+    parser.add_argument('--interp', type=str, default='hanning',
+                        help='Display interpolation mode, default=hanning')
+    parser.add_argument('--interp_order', type=int, default=1,
+                        help='Data interpolation order, default=1')
+    parser.add_argument('--orient', type=str, default='clin',
+                        help='Clinical (clin) or Pre-clinical (preclin) orientation')
+
     parser.add_argument('--slice_rows', type=int, default=4, help='Number of rows of slices')
     parser.add_argument('--slice_cols', type=int, default=5, help='Number of columns of slices')
     parser.add_argument('--slice_axis', type=str, default='z', help='Axis to slice along (x/y/z)')
     parser.add_argument('--three_axis', help='Make a 3 axis (x,y,z) plot', action='store_true')
+    parser.add_argument('--timeseries', action='store_true', help="Plot the same slice through each volume in a time-series")
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
                         help='Slice between these limits along the axis, default=0.1 0.9')
     parser.add_argument('--figsize', type=float, nargs=2, default=(6, 4), help='Figure size in inches')
@@ -26,38 +76,19 @@ def main(args=None):
 
     print('*** Loading files')
     print('Loading base image: ', args.base_image)
-    img_base = nib.load(args.base_image)
-    img_mask = None
-    img_color = None
-    img_color_mask = None
-    img_alpha = None
-    img_contour = None
-
-    if args.mask:
-        print('Loading mask image:', args.mask)
-        img_mask = nib.load(args.mask)
-    if args.color:
-        print('Loading color overlay image:', args.color)
-        img_color = nib.load(args.color)
-        if args.color_mask:
-            print('Loading color mask image:', args.color_mask)
-            img_color_mask = nib.load(args.color_mask)
-        if args.alpha:
-            print('Loading alpha image:', args.alpha)
-            img_alpha = nib.load(args.alpha)
-        if args.contour_img:
-            print('Loading alpha contour image:', args.contour_img)
-            img_contour = nib.load(args.contour_img)
-        elif args.contour:
-            img_contour = img_alpha
+    base = Layer(args.base_image, cmap=args.base_map, clim=args.base_lims, mask=args.mask)
+    if args.overlay:
+        overlay = [Layer(args.overlay, cmap=args.overlay_map, clim=args.overlay_lims,
+                        mask=args.overlay_mask, mask_threshold=args.overlay_mask_thresh,
+                        alpha=args.alpha, alpha_lims=args.alpha_lims),]
+    else:
+        overlay = None
 
     print('*** Setup')
-    window = np.percentile(img_base.get_data(), args.window)
-    print('Base image window: ', window[0], ' - ', window[1])
-    if args.mask:
-        bbox = Box.fromMask(img_mask)
+    if base.mask_image:
+        bbox = Box.fromMask(base.mask_image)
     else:
-        bbox = Box.fromImage(img_base)
+        bbox = Box.fromImage(base.image)
     print(bbox)
     if args.three_axis:
         args.slice_rows = 1
@@ -65,6 +96,10 @@ def main(args=None):
         args.slice_axis = ['x', 'y', 'z']
         slice_total = 3
         slice_pos = np.tile(bbox.center, (3, 1))
+    elif args.timeseries:
+        # slice_pos = bbox.center
+        slice_pos = bbox.start + bbox.diag * 0.4
+        slice_total = base.image.shape[3]
     else:
         slice_total = args.slice_rows*args.slice_cols
         args.slice_axis = [args.slice_axis] * slice_total
@@ -82,28 +117,38 @@ def main(args=None):
     print('*** Slicing')
     for s in range(0, slice_total):
         ax = plt.subplot(gs1[s], facecolor='black')
-        print('Slice pos ', slice_pos[s, :])
-        sl = Slicer(bbox, slice_pos[s, :], args.slice_axis[s], args.samples, orient=args.orient)
-        sl_final = overlay_slice(sl, args, window,
-                                 img_base, img_mask, img_color, img_color_mask, img_alpha)
+        if args.timeseries:
+            base.volume = s
+            sp = slice_pos
+            axis = args.slice_axis
+        else:
+            sp = slice_pos[s, :]
+            axis = args.slice_axis[s]
+        
+        print('Slice pos ', sp)
+        sl = Slicer(bbox, sp, axis, args.samples, orient=args.orient)
+        sl_final = overlay_slices(sl, base, overlay, args.interp_order)
         ax.imshow(sl_final, origin=origin, extent=sl.extent, interpolation=args.interp)
         ax.axis('off')
-        if img_contour:
-            sl_contour = sl.sample(img_contour, order=args.interp_order)
-            ax.contour(sl_contour, levels=args.contour, origin=origin, extent=sl.extent,
-                    colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
+        # if img_contour:
+        #     sl_contour = sl.sample(img_contour, order=args.interp_order)
+        #     ax.contour(sl_contour, levels=args.contour, origin=origin, extent=sl.extent,
+        #             colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
-    if args.color:
+    if args.base_map or args.overlay:
         print('*** Adding colorbar')
         gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
         gs2 = gridspec.GridSpec(1, 1)
         gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
         axes = plt.subplot(gs2[0], facecolor='black')
-        if args.alpha:
-            alphabar(axes, args.color_map, args.color_lims, args.color_label,
-                        args.alpha_lims, args.alpha_label)
+        if args.overlay_alpha:
+            alphabar(axes, args.overlay_map, args.overlay_lims, args.overlay_label,
+                        args.overlay_alpha_lims, args.overlay_alpha_label)
         else:
-            colorbar(axes, args.color_map, args.color_lims, args.color_label)
+            if args.base_map:
+                colorbar(axes, base.cmap, base.clim, args.base_label)
+            else:
+                colorbar(axes, overlay.cmap, overlay.clim, args.overlay_label)
     else:
         gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
     print('*** Saving')

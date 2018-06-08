@@ -42,12 +42,12 @@ def center_of_mass(img):
 def overlay_slice(sl, options, window,
                   img_base, img_mask,
                   img_color, img_color_mask,
-                  img_alpha):
+                  img_alpha, volume=None):
     """Creates a slice through a base image, with a color overlay and specified alpha"""
     sl_base = image.colorize(sl.sample(img_base, order=options.interp_order),
                              'gray', window)
     if img_color:
-        sl_color = sl.sample(img_color, order=options.interp_order) * options.color_scale
+        sl_color = sl.sample(img_color, order=options.interp_order, volume=volume) * options.color_scale
         if img_color_mask:
             sl_color_mask = sl.sample(img_color_mask, order=options.interp_order)
             if options.color_mask_thresh:
@@ -67,8 +67,7 @@ def overlay_slice(sl, options, window,
     else:
         sl_blend = sl_base
     if img_mask:
-        sl_final = image.mask(sl_blend,
-                              sl.sample(img_mask, options.interp_order))
+        sl_final = image.mask(sl_blend, sl.sample(img_mask, options.interp_order))
     else:
         sl_final = sl_blend
     return sl_final

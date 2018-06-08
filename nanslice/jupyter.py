@@ -7,7 +7,7 @@ import ipywidgets as ipy
 from . import util, image
 from .box import Box
 from .slicer import Slicer
-from .layer import Layer, overlay
+from .layer import Layer, overlay_slices
 
 def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9),
            cmap=None, clim=None, label='',
@@ -29,7 +29,7 @@ def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9),
     for s in range(0, ntotal):
         axes = plt.subplot(gs1[s], facecolor='black')
         slr = Slicer(bbox, slice_pos[s, :], axis, samples, orient=orient)
-        sl_final = overlay(slr, base, overlays, 1)
+        sl_final = overlay_slices(slr, base, overlays, 1)
         axes.imshow(sl_final, origin='lower', extent=slr.extent, interpolation='nearest')
         axes.axis('off')
         if contour_img:
@@ -90,7 +90,7 @@ def three_plane(img,
         fig, axes = plt.subplots(1, 3, figsize=(9, 3), facecolor='black')
     for i in range(3):
         slr = Slicer(bbox, bbox.center, i, samples=samples, orient=orient)
-        blended_slice = overlay(slr, base, overlays, 1)
+        blended_slice = overlay_slices(slr, base, overlays, 1)
         axes[i].imshow(blended_slice, origin='lower', extent=slr.extent, interpolation='nearest')
         axes[i].axis('off')
     fig.tight_layout()
@@ -117,7 +117,7 @@ def three_plane_viewer(img,
     def wrap_sections(X, Y, Z):
         for i in range(3):
             slr = Slicer(bbox, (X, Y, Z), i, samples=samples, orient=orient)
-            blended_slice = overlay(slr, base, overlays, 1)
+            blended_slice = overlay_slices(slr, base, overlays, 1)
             if implots[i]:
                 implots[i].set_data(blended_slice)
             else:

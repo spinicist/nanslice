@@ -12,12 +12,13 @@ from .util import ensure_image, check_path
 class Layer:
     """The Layer class. Keeps tabs on the image, color-map & transparency value"""
 
-    def __init__(self, image, scale=1.0,
+    def __init__(self, image, scale=1.0, volume=0,
                  cmap=None, clim=None,
                  mask=None, mask_threshold=None,
-                 alpha=None, alpha_lims=None):
+                 alpha=None, alpha_lims=None, alpha_scale=1.0):
         self.image = ensure_image(image)
         self.scale = scale
+        self.volume = 0
         if cmap:
             self.cmap = cmap
         else:
@@ -44,13 +45,13 @@ class Layer:
             self.alpha_image = None
             self.alpha = 1.0
 
-def overlay(slicer, base, overlays, interp_order):
+def overlay_slices(slicer, base, overlays, interp_order):
     """Blends together a set of overlays"""
-    base_slice = image.colorize(slicer.sample(base.image, interp_order) * base.scale,
+    base_slice = image.colorize(slicer.sample(base.image, interp_order, base.scale, base.volume) * base.scale,
                                 base.cmap, base.clim)
     if overlays:
         for over in overlays:
-            over_slice = slicer.sample(over.image, interp_order) * over.scale
+            over_slice = slicer.sample(over.image, interp_order, over.scale, over.volume)
             if over.mask_threshold:
                 over_slice = over_slice > over.mask_threshold
             over_slice = image.colorize(over_slice, over.cmap, over.clim)
