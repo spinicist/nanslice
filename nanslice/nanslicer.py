@@ -11,7 +11,7 @@ import matplotlib.gridspec as gridspec
 from .util import overlay_slice, alphabar, colorbar
 from .box import Box
 from .slicer import Slicer
-from .layer import Layer, overlay_slices
+from .layer import Layer, blend_layers
 def main(args=None):
     parser = argparse.ArgumentParser(description='Dual-coding viewer.')
     parser.add_argument('base_image', help='Base (structural image)', type=str)
@@ -70,25 +70,25 @@ def main(args=None):
     parser.add_argument('--timeseries', action='store_true', help="Plot the same slice through each volume in a time-series")
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
                         help='Slice between these limits along the axis, default=0.1 0.9')
-    parser.add_argument('--figsize', type=float, nargs=2, default=(6, 4), help='Figure size in inches')
+    parser.add_argument('--figsize', type=float, nargs=2, default=None, help='Figure size (width, height) in inches')
     parser.add_argument('--dpi', type=int, default=150, help='DPI for output figure')
     args = parser.parse_args()
 
     print('*** Loading files')
     print('Loading base image: ', args.base_image)
-    base = Layer(args.base_image, cmap=args.base_map, clim=args.base_lims, mask=args.mask)
+    layers = [Layer(args.base_image, cmap=args.base_map, clim=args.base_lims, mask=args.mask,
+                 interp_order=args.interp_order),]
     if args.overlay:
-        overlay = [Layer(args.overlay, cmap=args.overlay_map, clim=args.overlay_lims,
-                        mask=args.overlay_mask, mask_threshold=args.overlay_mask_thresh,
-                        alpha=args.alpha, alpha_lims=args.alpha_lims),]
-    else:
-        overlay = None
+        layers.append(Layer(args.overlay, cmap=args.overlay_map, clim=args.overlay_lims,
+                            mask=args.overlay_mask, mask_threshold=args.overlay_mask_thresh,
+                            alpha=args.alpha, alpha_lims=args.alpha_lims,
+                            interp_order=args.interp_order))
 
     print('*** Setup')
-    if base.mask_image:
-        bbox = Box.fromMask(base.mask_image)
+    if layers[0].mask_image:
+        bbox = Box.fromMask(layers[0].mask_image)
     else:
-        bbox = Box.fromImage(base.image)
+        bbox = Box.fromImage(layers[0].image)
     print(bbox)
     if args.three_axis:
         args.slice_rows = 1
@@ -99,7 +99,7 @@ def main(args=None):
     elif args.timeseries:
         # slice_pos = bbox.center
         slice_pos = bbox.start + bbox.diag * 0.4
-        slice_total = base.image.shape[3]
+        slice_total = layers[0].image.shape[3]
     else:
         slice_total = args.slice_rows*args.slice_cols
         args.slice_axis = [args.slice_axis] * slice_total
@@ -112,13 +112,16 @@ def main(args=None):
         origin = 'lower'
 
     gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
-    f = plt.figure(facecolor='black', figsize=args.figsize)
+    if args.figsize:
+        f = plt.figure(facecolor='black', figsize=args.figsize)
+    else:
+        f = plt.figure(facecolor='black', figsize=(3*args.slice_cols, 3*args.slice_rows))
 
     print('*** Slicing')
     for s in range(0, slice_total):
         ax = plt.subplot(gs1[s], facecolor='black')
         if args.timeseries:
-            base.volume = s
+            layers[0].volume = s
             sp = slice_pos
             axis = args.slice_axis
         else:
@@ -127,7 +130,7 @@ def main(args=None):
         
         print('Slice pos ', sp)
         sl = Slicer(bbox, sp, axis, args.samples, orient=args.orient)
-        sl_final = overlay_slices(sl, base, overlay, args.interp_order)
+        sl_final = blend_layers(layers, sl)
         ax.imshow(sl_final, origin=origin, extent=sl.extent, interpolation=args.interp)
         ax.axis('off')
         # if img_contour:
@@ -146,9 +149,9 @@ def main(args=None):
                         args.overlay_alpha_lims, args.overlay_alpha_label)
         else:
             if args.base_map:
-                colorbar(axes, base.cmap, base.clim, args.base_label)
+                colorbar(axes, layers[0].cmap, layers[0].clim, args.base_label)
             else:
-                colorbar(axes, overlay.cmap, overlay.clim, args.overlay_label)
+                colorbar(axes, layers[1].cmap, layers[1].clim, args.overlay_label)
     else:
         gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
     print('*** Saving')

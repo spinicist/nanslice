@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import ipympl
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -7,7 +6,7 @@ import ipywidgets as ipy
 from . import util, image
 from .box import Box
 from .slicer import Slicer
-from .layer import Layer, overlay_slices
+from .layer import Layer, blend_layers
 
 def slices(img, ncols=3, nrows=1, axis='z', lims=(0.1, 0.9),
            cmap=None, clim=None, label='',
