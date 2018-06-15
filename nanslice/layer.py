@@ -6,7 +6,8 @@ cmap, transparency, etc., and the overlay function for combining layers
 """
 from numpy import nanpercentile, ones_like
 from nibabel import load
-from . import image
+from . import image_func
+from .box import Box
 from .util import ensure_image, check_path
 
 class Layer:
@@ -56,51 +57,27 @@ class Layer:
 
     def get_slice(self, slicer):
         """Return the slice for this Layer"""
-        slc = image.colorize(slicer.sample(self.image, self.interp_order, self.scale, self.volume),
+        slc = image_func.colorize(slicer.sample(self.image, self.interp_order, self.scale, self.volume),
                              self.cmap, self.clim)
         if self.mask_image:
             mask_slc = slicer.sample(self.mask_image, 0) > 0
-            slc = image.mask(slc, mask_slc)
+            slc = image_func.mask(slc, mask_slc)
         return slc
 
     def get_alpha(self, slicer):
         if self.alpha_image:
             alpha_slice = slicer.sample(self.alpha_image, self.interp_order)
-            alpha_slice = image.scale_clip(alpha_slice, self.alpha_lims)
+            alpha_slice = image_func.scale_clip(alpha_slice, self.alpha_lims)
             return alpha_slice
         else:
             return None
 
-    def plot(self, slicer, axes):
-        """Plot a Layer into a Matplotlib axes using the provided Slicer"""
-        slc = self.get_slice(slicer)
-        cax = axes.imshow(slc, origin='lower', extent=slicer.extent, interpolation='nearest')
-        axes.axis('off')
-        return cax
-
-
 def blend_layers(layers, slicer):
     """Blends together a set of overlays"""
-    base_slice = image.colorize(slicer.sample(base.image, interp_order, base.scale, base.volume) * base.scale,
-                                base.cmap, base.clim)
-    if overlays:
-        for over in overlays:
-            over_slice = slicer.sample(over.image, interp_order, over.scale, over.volume)
-            if over.mask_threshold:
-                over_slice = over_slice > over.mask_threshold
-            over_slice = image.colorize(over_slice, over.cmap, over.clim)
-
-            if over.mask_image:
-                mask_slice = slicer.sample(over.mask_image, interp_order)
-                over_slice = image.mask(over_slice, mask_slice)
-            if over.alpha_image:
-                alpha_slice = slicer.sample(over.alpha_image, interp_order)
-                alpha_slice = image.scale_clip(alpha_slice, over.alpha_lims)
-                base_slice = image.blend(base_slice, over_slice, alpha_slice)
-            else:
-                alpha_slice = ones_like(over_slice)
-                base_slice = image.blend(base_slice, over_slice, alpha_slice)
-    if base.mask_image:
-        mask_slice = slicer.sample(base.mask_image, interp_order) > 0
-        base_slice = image.mask(base_slice, mask_slice)
-    return base_slice
+    slc = layers[0].get_slice(slicer)
+    for l in layers[1:]:
+        next_slc = l.get_slice()
+        next_alpha = l.get_alpha()
+        if next_alpha:
+            slc = image_func.blend(slc, next_slc, next_alpha)
+    return slc

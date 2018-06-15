@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 from nibabel import load
-from . import image
+from . import image_func
 from .slicer import axis_map, axis_indices
 
 def check_path(maybe_path):
@@ -44,7 +44,7 @@ def overlay_slice(sl, options, window,
                   img_color, img_color_mask,
                   img_alpha, volume=None):
     """Creates a slice through a base image, with a color overlay and specified alpha"""
-    sl_base = image.colorize(sl.sample(img_base, order=options.interp_order),
+    sl_base = image_func.colorize(sl.sample(img_base, order=options.interp_order),
                              'gray', window)
     if img_color:
         sl_color = sl.sample(img_color, order=options.interp_order, volume=volume) * options.color_scale
@@ -56,18 +56,18 @@ def overlay_slice(sl, options, window,
             sl_color_mask = sl_color > options.color_mask_thresh
         else:
             sl_color_mask = np.ones_like(sl_color)
-        sl_color = image.colorize(sl_color, options.color_map, options.color_lims)
-        sl_color = image.mask(sl_color, sl_color_mask)
+        sl_color = image_func.colorize(sl_color, options.color_map, options.color_lims)
+        sl_color = image_func.mask(sl_color, sl_color_mask)
         if img_alpha:
             sl_alpha = sl.sample(img_alpha, order=options.interp_order)
-            sl_scaled_alpha = image.scale_clip(sl_alpha, options.alpha_lims)
-            sl_blend = image.blend(sl_base, sl_color, sl_scaled_alpha)
+            sl_scaled_alpha = image_func.scale_clip(sl_alpha, options.alpha_lims)
+            sl_blend = image_func.blend(sl_base, sl_color, sl_scaled_alpha)
         else:
-            sl_blend = image.blend(sl_base, sl_color, sl_color_mask)
+            sl_blend = image_func.blend(sl_base, sl_color, sl_color_mask)
     else:
         sl_blend = sl_base
     if img_mask:
-        sl_final = image.mask(sl_blend, sl.sample(img_mask, options.interp_order))
+        sl_final = image_func.mask(sl_blend, sl.sample(img_mask, options.interp_order))
     else:
         sl_final = sl_blend
     return sl_final
@@ -101,7 +101,7 @@ def colorbar(axes, cm_name, clims, clabel,
     else:
         ext = (0, 1, clims[0], clims[1])
         cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
-    color = image.colorize(cdata, cm_name, clims)
+    color = image_func.colorize(cdata, cm_name, clims)
     axes.imshow(color, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
     if black_backg:
         forecolor = 'w'
@@ -148,10 +148,10 @@ def alphabar(axes, cm_name, clims, clabel,
         ext = (alims[0], alims[1], clims[0], clims[1])
         cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
         alpha = np.tile(np.linspace(0, 1, steps)[np.newaxis, :], [steps, 1])
-    color = image.colorize(cdata, cm_name, clims)
+    color = image_func.colorize(cdata, cm_name, clims)
     
     backg = np.ones((steps, steps, 3))
-    acmap = image.blend(backg, color, alpha)
+    acmap = image_func.blend(backg, color, alpha)
     axes.imshow(acmap, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
 
     cticks = (clims[0], np.sum(clims)/2, clims[1])

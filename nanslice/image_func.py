@@ -13,9 +13,7 @@ def colorize(data, cmap, clims=None):
         norm = None
     else:
         norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])
-    print(type(cmap).__name__)
     try:
-        print('Trying')
         cmap = mpl.cm.get_cmap(cmap)
     except Exception:
         pass

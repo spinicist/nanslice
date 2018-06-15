@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import ipywidgets as ipy
-from . import util, image
+from . import util
 from .box import Box
 from .slicer import Slicer
 from .layer import Layer, blend_layers
@@ -63,9 +63,9 @@ def checkerboard(img1, img2, mask=None, orient='clin', samples=128):
 
     for i in range(3):
         slr = Slicer(bbox, bbox.center, i, samples=samples, orient=orient)
-        sl_1 = image.colorize(slr.sample(img1, 1), 'gray', window1)
-        sl_2 = image.colorize(slr.sample(img2, 1), 'gray', window2)
-        sl_c = image.checkerboard(sl_1, sl_2)
+        sl_1 = image_func.colorize(slr.sample(img1, 1), 'gray', window1)
+        sl_2 = image_func.colorize(slr.sample(img2, 1), 'gray', window2)
+        sl_c = image_func.checkerboard(sl_1, sl_2)
         axes[i].imshow(sl_c, origin='lower', extent=slr.extent,
                        interpolation='nearest')
         axes[i].axis('off')
