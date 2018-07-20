@@ -74,4 +74,4 @@ class Slicer:
                 volume = 0
             vol_index = np.tile(volume, physical.shape[1:3])[np.newaxis, :]
             physical = np.concatenate((physical, vol_index), axis=0)
-        return scale * ndinterp.map_coordinates(img.get_data().squeeze(), physical, order=order).T
+        return scale * ndinterp.map_coordinates(img.get_data(), physical, order=order).T
