@@ -43,7 +43,7 @@ luck with your reviewers.
 This module has not yet been uploaded to `PyPI` as it is still in development.
 Hence, to install, download or clone the git repository and then run
 `pip install .` from within the top-level directory. If you plan to update
-frequently or contribute, consider using the `pip install . -e` version.
+frequently or contribute, consider using the `pip install -e .` version.
 
 # Usage #
 
