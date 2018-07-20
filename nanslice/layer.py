@@ -4,7 +4,7 @@
 Contains the Layer class which stores settings for each layer (image to sample,
 cmap, transparency, etc., and the overlay function for combining layers
 """
-from numpy import nanpercentile, ones_like
+from numpy import nanpercentile, ma
 from nibabel import load
 from . import image_func
 from .box import Box
@@ -22,14 +22,7 @@ class Layer:
         self.interp_order = interp_order
         self.volume = volume
         self.label = label
-        if cmap:
-            self.cmap = cmap
-        else:
-            self.cmap = 'gist_gray'
-        if clim:
-            self.clim = clim
-        else:
-            self.clim = nanpercentile(self.image.get_data(), (2, 98))
+
         self.mask_image = ensure_image(mask)
         if mask_threshold:
             self.mask_threshold = mask_threshold
@@ -39,6 +32,22 @@ class Layer:
             self.bbox = Box.fromMask(self.mask_image)
         else:
             self.bbox = Box.fromImage(self.image)
+
+        if cmap:
+            self.cmap = cmap
+        else:
+            self.cmap = 'gist_gray'
+        if clim:
+            self.clim = clim
+        else:
+            if len(self.image.shape) == 4:
+                imdata = self.image.dataobj[:,:,:,self.volume].squeeze()
+            else:
+                imdata = self.image.dataobj
+            if self.mask_image:
+                imdata = ma.masked_where(self.mask_image.get_data() > 0, imdata).compressed()
+            self.clim = nanpercentile(imdata, (2, 98))
+
         if check_path(alpha):
             self.alpha_image = load(str(alpha))
             if alpha_lims:
@@ -71,6 +80,13 @@ class Layer:
             return alpha_slice
         else:
             return None
+
+    def plot(self, slicer, axes):
+        """Plot a Layer into a Matplotlib axes using the provided Slicer"""
+        slc = self.get_slice(slicer)
+        cax = axes.imshow(slc, origin='lower', extent=slicer.extent, interpolation='nearest')
+        axes.axis('off')
+        return cax
 
 def blend_layers(layers, slicer):
     """Blends together a set of overlays"""
