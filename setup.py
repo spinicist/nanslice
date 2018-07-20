@@ -31,6 +31,7 @@ setup(
         'console_scripts': [
             'nanslicer=nanslice.nanslicer:main',
             'nanviewer=nanslice.nanviewer:main',
+            'nanvideo=nanslice.nanvideo:main'
         ],
     },
 )
