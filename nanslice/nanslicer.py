@@ -7,61 +7,14 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from .util import alphabar, colorbar
+from .util import overlay_slice, alphabar, colorbar, add_common_arguments
 from .box import Box
 from .slicer import Slicer
 from .layer import Layer, blend_layers
 def main(args=None):
-    parser = argparse.ArgumentParser(description='Dual-coding viewer.')
-    parser.add_argument('base_image', help='Base (structural image)', type=str)
+    parser = argparse.ArgumentParser(description='Takes aesthetically pleasing slices through MR images')
+    add_common_arguments(parser)
     parser.add_argument('output', help='Output image name', type=str)
-    parser.add_argument('--mask', type=str,
-                        help='Mask image')
-    parser.add_argument('--base_map', type=str, default='gist_gray',
-                        help='Base image colormap to use from Matplotlib, default = RdYlBu_r')
-    parser.add_argument('--base_lims', type=float, nargs=2, default=None,
-                        help='Specify base image window')
-    parser.add_argument('--base_scale', type=float, default=1.0,
-                        help='Scaling for base image before mapping, default=1.0')
-    parser.add_argument('--base_label', type=str, default='',
-                        help='Label for base color axis')
-
-    parser.add_argument('--overlay', type=str,
-                        help='Add color overlay')
-    parser.add_argument('--overlay_lims', type=float, nargs=2, default=(-1, 1),
-                        help='Overlay window, default=-1 1')
-    parser.add_argument('--overlay_mask', type=str,
-                        help='Mask color image')
-    parser.add_argument('--overlay_mask_thresh', type=float,
-                        help='Overlay mask threshold')
-    parser.add_argument('--overlay_scale', type=float, default=1.0,
-                        help='Scaling for overlay image before mapping, default=1.0')
-    parser.add_argument('--overlay_label', type=str, default='',
-                        help='Label for overlay color axis')
-    parser.add_argument('--overlay_alpha', type=str,
-                        help='Image for transparency-coding of overlay')
-    parser.add_argument('--overlay_alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
-                        help='Overlay Alpha/transparency window, default=0.5 1.0')
-    parser.add_argument('--overlay_alpha_label', type=str, default='1-p',
-                        help='Label for overlay alpha/transparency axis')
-    parser.add_argument('--overlay_contour_image', type=str,
-                        help='Image to define contour (if none, use alpha image)')
-    parser.add_argument('--overlay_contour', type=float, action='append',
-                        help='Add an alpha image contour (can be multiple)')
-    parser.add_argument('--overlay_contour_color', type=str, action='append',
-                        help='Choose contour colour')
-    parser.add_argument('--overlay_contour_style', type=str, action='append',
-                        help='Choose contour line-style')
-
-    parser.add_argument('--samples', type=int, default=128,
-                        help='Number of samples for slicing, default=128')
-    parser.add_argument('--interp', type=str, default='hanning',
-                        help='Display interpolation mode, default=hanning')
-    parser.add_argument('--interp_order', type=int, default=1,
-                        help='Data interpolation order, default=1')
-    parser.add_argument('--orient', type=str, default='clin',
-                        help='Clinical (clin) or Pre-clinical (preclin) orientation')
-
     parser.add_argument('--slice_rows', type=int, default=4, help='Number of rows of slices')
     parser.add_argument('--slice_cols', type=int, default=5, help='Number of columns of slices')
     parser.add_argument('--slice_axis', type=str, default='z', help='Axis to slice along (x/y/z)')
@@ -73,6 +26,7 @@ def main(args=None):
     parser.add_argument('--bar_pos', type=str, default='bottom', help='Position of color-bar (bottom / right)')
     parser.add_argument('--figsize', type=float, nargs=2, default=None, help='Figure size (width, height) in inches')
     parser.add_argument('--dpi', type=int, default=150, help='DPI for output figure')
+
     args = parser.parse_args()
 
     print('*** Loading files')

@@ -7,9 +7,8 @@ Utility functions for nanslice module"""
 from pathlib import Path
 import argparse
 import numpy as np
-import scipy.ndimage.interpolation as ndinterp
 from nibabel import load
-from . import image_func
+from . import slice_func
 from .slicer import axis_map, axis_indices
 
 def check_path(maybe_path):
@@ -26,12 +25,6 @@ def ensure_image(maybe_path):
     else:
         return maybe_path
 
-def sample_point(img, point, order=1):
-    scale = np.mat(img.get_affine()[0:3, 0:3]).I
-    offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
-    s_point = np.dot(scale, point).T + offset[:]
-    return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
-
 def center_of_mass(img):
     idx0 = np.argmax(np.sum(img.get_data(), axis=(1,2)))
     idx1 = np.argmax(np.sum(img.get_data(), axis=(0,2)))
@@ -44,7 +37,7 @@ def overlay_slice(sl, options, window,
                   img_color, img_color_mask,
                   img_alpha, volume=None):
     """Creates a slice through a base image, with a color overlay and specified alpha"""
-    sl_base = image_func.colorize(sl.sample(img_base, order=options.interp_order),
+    sl_base = slice_func.colorize(sl.sample(img_base, order=options.interp_order),
                              'gray', window)
     if img_color:
         sl_color = sl.sample(img_color, order=options.interp_order, volume=volume) * options.color_scale
@@ -56,18 +49,18 @@ def overlay_slice(sl, options, window,
             sl_color_mask = sl_color > options.color_mask_thresh
         else:
             sl_color_mask = np.ones_like(sl_color)
-        sl_color = image_func.colorize(sl_color, options.color_map, options.color_lims)
-        sl_color = image_func.mask(sl_color, sl_color_mask)
+        sl_color = slice_func.colorize(sl_color, options.color_map, options.color_lims)
+        sl_color = slice_func.mask(sl_color, sl_color_mask)
         if img_alpha:
             sl_alpha = sl.sample(img_alpha, order=options.interp_order)
-            sl_scaled_alpha = image_func.scale_clip(sl_alpha, options.alpha_lims)
-            sl_blend = image_func.blend(sl_base, sl_color, sl_scaled_alpha)
+            sl_scaled_alpha = slice_func.scale_clip(sl_alpha, options.alpha_lims)
+            sl_blend = slice_func.blend(sl_base, sl_color, sl_scaled_alpha)
         else:
-            sl_blend = image_func.blend(sl_base, sl_color, sl_color_mask)
+            sl_blend = slice_func.blend(sl_base, sl_color, sl_color_mask)
     else:
         sl_blend = sl_base
     if img_mask:
-        sl_final = image_func.mask(sl_blend, sl.sample(img_mask, options.interp_order))
+        sl_final = slice_func.mask(sl_blend, sl.sample(img_mask, options.interp_order))
     else:
         sl_final = sl_blend
     return sl_final
@@ -85,12 +78,6 @@ def draw_slice(axis, sl, opts, window, img, mask,
                         origin='lower', extent=sl.extent,
                         colors=contour_colors, linewidths=1)
 
-def crosshairs(axis, point, direction, orient, color='g'):
-    ind1, ind2 = axis_indices(axis_map[direction], orient)
-    vline = axis.axvline(x=point[ind1], color=color)
-    hline = axis.axhline(y=point[ind2], color=color)
-    return (vline, hline)
-
 def colorbar(axes, cm_name, clims, clabel,
              black_backg=True, show_ticks=True, tick_fmt='{:.1f}', orient='h'):
     """Plots a 2D colorbar (color/alpha)"""
@@ -101,7 +88,7 @@ def colorbar(axes, cm_name, clims, clabel,
     else:
         ext = (0, 1, clims[0], clims[1])
         cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
-    color = image_func.colorize(cdata, cm_name, clims)
+    color = slice_func.colorize(cdata, cm_name, clims)
     axes.imshow(color, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
     if black_backg:
         forecolor = 'w'
@@ -148,10 +135,10 @@ def alphabar(axes, cm_name, clims, clabel,
         ext = (alims[0], alims[1], clims[0], clims[1])
         cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
         alpha = np.tile(np.linspace(0, 1, steps)[np.newaxis, :], [steps, 1])
-    color = image_func.colorize(cdata, cm_name, clims)
+    color = slice_func.colorize(cdata, cm_name, clims)
     
     backg = np.ones((steps, steps, 3))
-    acmap = image_func.blend(backg, color, alpha)
+    acmap = slice_func.blend(backg, color, alpha)
     axes.imshow(acmap, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
 
     cticks = (clims[0], np.sum(clims)/2, clims[1])
@@ -199,46 +186,47 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.xaxis.label.set_color('k')
         axes.axis('on')
 
-def common_arguments():
-    """Defines a set of common arguments that are shared between viewer and slicer"""
-    parser = argparse.ArgumentParser(description='Dual-coding viewer.')
+def add_common_arguments(parser):
+    """Defines a set of common arguments that are shared between nanviewer and nanslicer"""
     parser.add_argument('base_image', help='Base (structural image)', type=str)
     parser.add_argument('--mask', type=str,
                         help='Mask image')
+    parser.add_argument('--base_map', type=str, default='gist_gray',
+                        help='Base image colormap to use from Matplotlib, default = gist_gray')
+    parser.add_argument('--base_lims', type=float, nargs=2, default=None,
+                        help='Specify base image window')
+    parser.add_argument('--base_scale', type=float, default=1.0,
+                        help='Scaling for base image before mapping, default=1.0')
+    parser.add_argument('--base_label', type=str, default='',
+                        help='Label for base color axis')
 
-    parser.add_argument('--color', type=str,
+    parser.add_argument('--overlay', type=str,
                         help='Add color overlay')
-    parser.add_argument('--color_lims', type=float, nargs=2, default=(-1, 1),
-                        help='Colormap window, default=-1 1')
-    parser.add_argument('--color_mask', type=str,
+    parser.add_argument('--overlay_lims', type=float, nargs=2, default=(-1, 1),
+                        help='Overlay window, default=-1 1')
+    parser.add_argument('--overlay_mask', type=str,
                         help='Mask color image')
-    parser.add_argument('--color_mask_thresh', type=float,
-                        help='Color mask threshold')
-    parser.add_argument('--color_scale', type=float, default=1,
-                        help='Multiply color image by value, default=1')
-    parser.add_argument('--color_map', type=str, default='RdYlBu_r',
-                        help='Colormap to use from Matplotlib, default = RdYlBu_r')
-    parser.add_argument('--color_label', type=str, default='% Change',
-                        help='Label for color axis')
-
-    parser.add_argument('--alpha', type=str,
+    parser.add_argument('--overlay_mask_thresh', type=float,
+                        help='Overlay mask threshold')
+    parser.add_argument('--overlay_scale', type=float, default=1.0,
+                        help='Scaling for overlay image before mapping, default=1.0')
+    parser.add_argument('--overlay_label', type=str, default='',
+                        help='Label for overlay color axis')
+    parser.add_argument('--overlay_alpha', type=str,
                         help='Image for transparency-coding of overlay')
-    parser.add_argument('--alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
-                        help='Alpha/transparency window, default=0.5 1.0')
-    parser.add_argument('--alpha_label', type=str, default='1-p',
-                        help='Label for alpha/transparency axis')
-    
-    parser.add_argument('--contour_img', type=str,
+    parser.add_argument('--overlay_alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
+                        help='Overlay Alpha/transparency window, default=0.5 1.0')
+    parser.add_argument('--overlay_alpha_label', type=str, default='1-p',
+                        help='Label for overlay alpha/transparency axis')
+    parser.add_argument('--overlay_contour_image', type=str,
                         help='Image to define contour (if none, use alpha image)')
-    parser.add_argument('--contour', type=float, action='append',
+    parser.add_argument('--overlay_contour', type=float, action='append',
                         help='Add an alpha image contour (can be multiple)')
-    parser.add_argument('--contour_color', type=str, action='append',
+    parser.add_argument('--overlay_contour_color', type=str, action='append',
                         help='Choose contour colour')
-    parser.add_argument('--contour_style', type=str, action='append',
+    parser.add_argument('--overlay_contour_style', type=str, action='append',
                         help='Choose contour line-style')
 
-    parser.add_argument('--window', type=float, nargs=2, default=(1, 99),
-                        help='Specify base image window (in percentiles)')
     parser.add_argument('--samples', type=int, default=128,
                         help='Number of samples for slicing, default=128')
     parser.add_argument('--interp', type=str, default='hanning',

@@ -6,7 +6,7 @@ cmap, transparency, etc., and the overlay function for combining layers
 """
 from numpy import nanpercentile, ma
 from nibabel import load
-from . import image_func
+from . import slice_func
 from .box import Box
 from .util import ensure_image, check_path
 
@@ -63,20 +63,21 @@ class Layer:
             self.alpha_image = None
             self.alpha = 1.0
             self.alpha_label = alpha_label
+        self.alpha_scale = alpha_scale
 
     def get_slice(self, slicer):
         """Return the slice for this Layer"""
-        slc = image_func.colorize(slicer.sample(self.image, self.interp_order, self.scale, self.volume),
-                             self.cmap, self.clim)
+        slc = slicer.sample(self.image, self.interp_order, self.scale, self.volume)
+        color_slc = slice_func.colorize(slc, self.cmap, self.clim)
         if self.mask_image:
             mask_slc = slicer.sample(self.mask_image, 0) > 0
-            slc = image_func.mask(slc, mask_slc)
-        return slc
+            color_slc = slice_func.mask(color_slc, mask_slc)
+        return color_slc
 
     def get_alpha(self, slicer):
         if self.alpha_image:
-            alpha_slice = slicer.sample(self.alpha_image, self.interp_order)
-            alpha_slice = image_func.scale_clip(alpha_slice, self.alpha_lims)
+            alpha_slice = slicer.sample(self.alpha_image, self.interp_order, self.alpha_scale)
+            alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lims)
             return alpha_slice
         else:
             return None
@@ -91,9 +92,9 @@ class Layer:
 def blend_layers(layers, slicer):
     """Blends together a set of overlays"""
     slc = layers[0].get_slice(slicer)
-    for l in layers[1:]:
-        next_slc = l.get_slice()
-        next_alpha = l.get_alpha()
+    for next_layer in layers[1:]:
+        next_slc = next_layer.get_slice()
+        next_alpha = next_layer.get_alpha()
         if next_alpha:
-            slc = image_func.blend(slc, next_slc, next_alpha)
+            slc = slice_func.blend(slc, next_slc, next_alpha)
     return slc

@@ -8,21 +8,18 @@ Copyright (C) 2017 Tobias Wood
 This code is subject to the terms of the Mozilla Public License. A copy can be
 found in the root directory of the project.
 """
-
 import sys
-import time
-import matplotlib
-# Make sure that we are using QT5
-matplotlib.use('Qt5Agg')
+import argparse
 import numpy as np
-import nibabel as nib
-from .util import common_arguments, overlay_slice, alphabar, colorbar, crosshairs, sample_point
-from .box import Box
-from .slicer import Slicer, axis_indices, axis_map
+import scipy.ndimage.interpolation as ndinterp
+import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
-from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from PyQt5 import QtCore, QtWidgets
+from .util import add_common_arguments, alphabar, colorbar
+from .slicer import Slicer, axis_indices, axis_map
+from .layer import Layer, blend_layers
 
 PROG_NAME = 'QIView'
 PROG_VERSION = "0.1"
@@ -31,6 +28,21 @@ class QICanvas(FigureCanvas):
     """Canvas to draw slices in."""
 
     def __init__(self, args, parent=None, width=5, height=4, dpi=100):
+        self.layers = [Layer(args.base_image,
+                             cmap=args.base_map,
+                             clim=args.base_lims,
+                             mask=args.mask,
+                             interp_order=args.interp_order),]
+        if args.overlay:
+            self.layers.append(Layer(args.overlay,
+                                     cmap=args.overlay_map,
+                                     clim=args.overlay_lims,
+                                     mask=args.overlay_mask,
+                                     mask_threshold=args.overlay_mask_thresh,
+                                     alpha=args.alpha,
+                                     alpha_lims=args.alpha_lims,
+                                     interp_order=args.interp_order))
+
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
         FigureCanvas.__init__(self, self.fig)
         FigureCanvas.mpl_connect(self, 'button_press_event', self.handle_mouse_event)
@@ -41,47 +53,28 @@ class QICanvas(FigureCanvas):
                                    QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         gs1 = GridSpec(1, 3)
-        gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
-        self.axes = [self.fig.add_subplot(gs, facecolor='black') for gs in gs1]
-        self.img_base = nib.load(args.base_image)
-        self.img_mask = None
-        self.img_color = None
-        self.img_color_mask = None
-        self.img_alpha = None
-        self.img_contour = None
-        if args.mask:
-            self.img_mask = nib.load(args.mask)
-            self.bbox = Box.fromMask(self.img_mask)
-        else:
-            self.bbox = Box.fromImage(self.img_base)
-        if args.color:
-            self.img_color = nib.load(args.color)
-            if args.color_mask:
-                self.img_color_mask = nib.load(args.color_mask)
+        if args.base_map or args.overlay:
             gs2 = GridSpec(1, 1)
-            if args.alpha:
-                self.img_alpha = nib.load(args.alpha)
-                gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
-                gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.16, wspace=0.1, hspace=0.1)
-                # If the line below goes before the lines above, it doesn't layout correctly
-                self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
-                alphabar(self.cbar_axis, args.color_map, args.color_lims, args.color_label,
-                                 args.alpha_lims, args.alpha_label, alines = args.contour)
-                if args.contour_img:
-                    self.img_contour = nib.load(args.contour_img)
-                elif args.contour:
-                    self.img_contour = self.img_alpha
+            gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
+            gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
+            self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
+            if args.overlay_alpha:
+                alphabar(self.cbar_axis, args.overlay_map, args.overlay_lims, args.overlay_label,
+                         args.overlay_alpha_lims, args.overlay_alpha_label)
             else:
-                gs1.update(left=0.01, right=0.99, bottom=0.12, top=0.99, wspace=0.01, hspace=0.01)
-                gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.12, wspace=0.1, hspace=0.1)
-                # If the line below goes before the lines above, it doesn't layout correctly
-                self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
-                colorbar(self.cbar_axis, args.color_map, args.color_lims, args.color_label)
+                if args.base_map:
+                    colorbar(self.cbar_axis, self.layers[0].cmap,
+                             self.layers[0].clim, args.base_label)
+                else:
+                    colorbar(self.cbar_axis, self.layers[1].cmap,
+                             self.layers[1].clim, args.overlay_label)
+        else:
+            gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
+        self.axes = [self.fig.add_subplot(gs, facecolor='black') for gs in gs1]
         
-        self.cursor = self.bbox.center
-        self.base_window = np.percentile(self.img_base.get_data(), args.window)
+        self.cursor = self.layers[0].bbox.center
         self.args = args
-
+        self.img_contour = None
         self._slices = [None, None, None]
         self._images = [None, None, None]
         self._contours = [None, None, None]
@@ -90,12 +83,24 @@ class QICanvas(FigureCanvas):
         self.directions = ('z', 'x', 'y')
         self.update_figure()
 
+    def crosshairs(self, axis, point, direction, orient, color='g'):
+        ind1, ind2 = axis_indices(axis_map[direction], orient)
+        vline = axis.axvline(x=point[ind1], color=color)
+        hline = axis.axhline(y=point[ind2], color=color)
+        return (vline, hline)
+
+    def sample_point(self, img, point, order=1):
+        scale = np.mat(img.get_affine()[0:3, 0:3]).I
+        offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
+        s_point = np.dot(scale, point).T + offset[:]
+        return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
+
     def update_figure(self, hold=None):
         """Updates the three axis views"""
         #t0 = time.time()
         # Save typing and lookup time
         args = self.args
-        bbox = self.bbox
+        bbox = self.layers[0].bbox
         cursor = self.cursor
         directions = self.directions
         # Do these individually now because I'm not clever enough to set them in the loop
@@ -106,13 +111,9 @@ class QICanvas(FigureCanvas):
                 crosshair[1].remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = Slice(bbox, cursor, directions[i],
-                                        args.samples, orient=args.orient)
-                
-                sl_final = overlay_slice(self._slices[i], args, self.base_window,
-                                                 self.img_base, self.img_mask,
-                                                 self.img_color, self.img_color_mask,
-                                                 self.img_alpha)
+                self._slices[i] = Slicer(bbox, cursor, directions[i],
+                                         args.samples, orient=args.orient)
+                sl_final = blend_layers(self.layers, self._slices[i])
                 # Draw image
                 if self._first_time:
                     self._images[i] = self.axes[i].imshow(sl_final, origin='lower',
@@ -134,7 +135,7 @@ class QICanvas(FigureCanvas):
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
-            self._crosshairs[i] = crosshairs(self.axes[i], self.cursor,
+            self._crosshairs[i] = self.crosshairs(self.axes[i], self.cursor,
                                                   directions[i], self.args.orient)
         self._first_time = False
         #print('Update time:', (time.time() - t0)*1000, 'ms')
@@ -149,11 +150,15 @@ class QICanvas(FigureCanvas):
                     self.cursor[ind2] = event.ydata
                     self.update_figure(hold=i)
             msg = 'Cursor: ' + str(self.cursor)
-            if self.args.color:
-                color_val = sample_point(self.img_color, self.cursor, self.args.interp_order)
+            if len(self.layers) > 1:
+                color_val = self.sample_point(self.layers[1].base_image,
+                                              self.cursor,
+                                              self.args.interp_order)
                 msg = msg + ' ' + self.args.color_label + ': ' + str(color_val[0])
-                if self.args.alpha:
-                    alpha_val = sample_point(self.img_alpha, self.cursor, self.args.interp_order)
+                if self.layers[1].alpha_image:
+                    alpha_val = self.sample_point(self.layers[1].alpha_image,
+                                                  self.cursor,
+                                                  self.args.interp_order)
                     msg = msg + ' ' + self.args.alpha_label + ': ' + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
@@ -202,7 +207,9 @@ A simple viewer for dual-coded overlays.
 With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html""")
 
 def main(args=None):
-    args = common_arguments().parse_args()
+    parser = argparse.ArgumentParser(description='Takes aesthetically pleasing slices through MR images')
+    add_common_arguments(parser)
+    args = parser.parse_args()
     application = QtWidgets.QApplication(sys.argv)
     window = QIViewWindow(args)
     window.setWindowTitle("%s" % PROG_NAME)
