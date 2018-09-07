@@ -33,10 +33,13 @@ class Box:
     
     @classmethod
     def fromMask(cls, img, padding=0):
-        """Creates a bounding box that encloses all non-zero voxels in a volume.
+        """
+        Creates a bounding box that encloses all non-zero voxels in a volume.
+        
         Parameters:
             img:     The volume to create the bounding-box from
-            padding: Number of extra voxels to pad the resulting box by"""
+            padding: Number of extra voxels to pad the resulting box by
+        """
         data = img.get_data()
 
         # Individual axis min/maxes

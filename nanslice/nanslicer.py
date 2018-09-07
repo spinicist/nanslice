@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-# Copyright (C) 2017 Tobias Wood
+"""
+nanslicer.py
 
-# This code is subject to the terms of the Mozilla Public License. A copy can be
-# found in the root directory of the project.
+The nanslicer command-line tool
+"""
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
