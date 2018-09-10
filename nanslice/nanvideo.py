@@ -9,7 +9,7 @@ import nibabel as nib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.animation import FuncAnimation
-from .util import overlay_slice, alphabar, colorbar
+from .colorbar import alphabar, colorbar
 from .box import Box
 from .slicer import Slicer
 from .layer import Layer, blend_layers

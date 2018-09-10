@@ -17,7 +17,8 @@ from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5 import QtCore, QtWidgets
-from .util import add_common_arguments, alphabar, colorbar
+from .util import add_common_arguments
+from .colorbar import colorbar, alphabar
 from .slicer import Slicer, axis_indices, axis_map
 from .layer import Layer, blend_layers
 

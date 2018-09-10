@@ -1,14 +1,23 @@
 #!/usr/bin/env python
 """slice_func.py
 
-Functions for manipulating 'slices' (or (X, Y, 3) arrays)"""
+Functions for manipulating 'slices'/images (or (X, Y, 3) arrays)
+"""
 
 import numpy as np
 import matplotlib as mpl
 import scipy.ndimage.filters as filters
 
 def colorize(data, cmap, clims=None):
-    """Apply a colormap to grayscale data. Takes an (X, Y) array and returns an (X, Y, 3) array"""
+    """
+    Apply a colormap to grayscale data. Takes an (X, Y) array and returns an (X, Y, 3) array
+    
+    Parameters:
+
+    - data -- The 2D scalar (X, Y) array to colorize
+    - cmap -- Any valid matplotlib colormap or colormap name
+    - clims -- The limits for the colormap
+    """
     if clims is None:
         norm = None
     else:
@@ -18,19 +27,49 @@ def colorize(data, cmap, clims=None):
     return smap.to_rgba(data, alpha=1, bytes=False)[:, :, 0:3]
 
 def scale_clip(data, lims):
-    """Scale an image to fill the range 0-1  and clip values that fall outside that range"""
+    """
+    Scale an image to fill the range 0-1  and clip values that fall outside that range
+    
+    Parameters:
+
+    - data -- The image data array
+    - lims -- The limits to scale betwee
+    """
     return np.clip((data - lims[0]) / (lims[1] - lims[0]), 0, 1)
 
 def blend(img_under, img_over, img_alpha):
-    """Blend together two images using an alpha channel image"""
+    """
+    Blend together two images using an alpha channel image
+    
+    Parameters:
+    
+    - img_under -- The base image (underneath the overlay)
+    - img_over  -- The overlay image
+    - img_alpha -- Transparency/alpha value to use when blending
+    """
     return img_under*(1 - img_alpha[:, :, None]) + img_over*img_alpha[:, :, None]
 
 def mask(img, img_mask, back=np.array((0, 0, 0))):
-    """Mask out sections of one image using another"""
+    """
+    Mask out sections of one image using another
+    
+    Parameters:
+
+    - img -- The image to be masked
+    - img_mask -- The mask image
+    - back -- Background value
+    """
     return blend(back, img, img_mask)
 
 def blur(img, sigma=1):
-    """Blur an image with a Gaussian kernel"""
+    """
+    Blur an image with a Gaussian kernel
+    
+    Parameters:
+
+    - img -- The image to blur
+    - sigma -- The FWHM of the Gaussian kernel, in voxels
+    """
     return filters.gaussian_filter(img, sigma)
 
 def checkerboard(img1, img2, square_size=16):

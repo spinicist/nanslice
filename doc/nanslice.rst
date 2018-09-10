@@ -12,6 +12,7 @@ Submodules
 .. toctree::
 
    nanslice.box
+   nanslice.colorbar
    nanslice.jupyter
    nanslice.layer
    nanslice.nanslicer

@@ -2,8 +2,8 @@
 """
 slicer.py
 
-This module contains the core Slicer object that samples images to produce
-slices.
+This module contains the core Slicer object that samples Layers to produce
+image arrays that can be drawn with matlplotlib.
 """
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
@@ -22,22 +22,25 @@ def axis_indices(axis, orient='clin'):
     return (this_orient[0][axis], this_orient[1][axis])
 
 class Slicer:
-    """The Slicer class. When constructed, creates an array of physical space co-ords, which are
-    used by sample() to sample a 3D volume.
-    Constructor Parameters:
-    bbox:    Bounding-Box that you want to slice
-    pos:     Position within the box to generate the slice through
-    axis:    Which axis you want to slice across
-    samples: Number of samples in the 'right' direction
-    orient:  'clin' or 'preclin'
     """
-
+    The Slicer class.
+    
+    When constructed, creates an array of world-space co-ordinates which represent the desired slice
+    
+    Constructor Parameters:
+    
+    - bbox -- :py:class:`~nanslice.box.Box` instance that defines the world-space bounding box that you want to slice
+    - pos -- Position within the box to generate the slice through
+    - axis -- Which axis you want to slice across. Either x/y/z or 0/1/2
+    - samples -- Number of samples in the horizontal direction
+    - orient --  'clin' or 'preclin'
+    """
     def __init__(self, bbox, pos, axis, samples=64, orient='clin'):
         try:
             ind_0 = axis_map[axis] # If someone passed in x/y/z
-        except:
+        except KeyError:
             ind_0 = axis # Assume it was an integer
-        
+
         ind_1, ind_2 = axis_indices(ind_0, orient=orient)
         start = np.copy(bbox.start)
         start[ind_0] = pos[ind_0]
@@ -55,8 +58,16 @@ class Slicer:
         self._tfm = None
         self._voxel_space = None
 
-    def get_physical(self, tfm):
-        """Returns an array of physical space co-ords for this slice. Will be cached."""
+    def get_voxel_coords(self, tfm):
+        """
+        Returns an array of voxel space co-ordinates for this slice, which will be cached.
+        If a subsequent call uses the same affine transform, the cached co-ordinates will be returned.
+        If a new transform is passed in, then a fresh set of co-ordinates are calculated first.
+        
+        Parameters:
+
+        - tfm -- An affine transform that defines an images physical space (usually the .affine property of an nibabel image)
+        """
         if not np.array_equal(tfm, self._tfm):
             old_sz = self._world_space.shape
             new_sz = np.prod(self._world_space.shape[1:])
@@ -68,13 +79,21 @@ class Slicer:
             self._tfm = tfm
         return self._voxel_space
 
-    def sample(self, img, order, scale=1.0, volume=None):
-        """Samples a volume using the calculated slice co-ordinates"""
-        physical = self.get_physical(img.affine)
+    def sample(self, img, order, scale=1.0, volume=0):
+        """
+        Samples the passed 3D/4D image and returns a 2D slice
+
+        Paramters:
+
+        - img -- An nibabel image
+        - order -- Interpolation order. 1 is linear interpolation
+        - scale -- Scale factor to multiply all voxel values by
+        - volume -- If sampling 4D data, specify the desired volume
+        
+        """
+        physical = self._get_voxel_coords(img.affine)
         # Support timeseries by adding an extra co-ord specifying the volume
         if len(img.shape) == 4:
-            if volume is None:
-                volume = 0
             vol_index = np.tile(volume, physical.shape[1:3])[np.newaxis, :]
             physical = np.concatenate((physical, vol_index), axis=0)
         return scale * ndinterp.map_coordinates(img.get_data(), physical, order=order).T

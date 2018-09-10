@@ -6,23 +6,41 @@ Contains a simple bounding-box class"""
 import numpy as np
 
 class Box:
-    """A simple bounding-box class"""
-    def __init__(self, center=None, sz=None, corners=None):
-        if center is not None and sz is not None:
+    """
+    A simple bounding-box class
+    
+    Constructor parameters:
+
+    - center -- The center of the box (x,y,z) in world-space co-ordinates
+    - size   -- The size of the box (x,y,z) in world-space units
+    - corners -- Two corners (x,y,z) of the box in world-space co-ordinates
+
+    Either corners or both center and size must be specified
+    """
+    def __init__(self, center=None, size=None, corners=None):
+        if center is not None and size is not None:
             self._center = center
-            self._diag = sz
-            self._c = (center - sz/2, center + sz/2)
+            self._diag = size
+            self._c = (center - size/2, center + size/2)
         elif corners is not None:
             self._c = corners
             self._diag = self._c[1] - self._c[0]
             self._center = (self._c[0] + self._c[1]) / 2
+        else:
+            raise Exception('Either center & sz or corners must be specified')
 
     def __str__(self):
         return 'Box Start: ' + str(self.start) + ' End: ' + str(self.end)
 
     @classmethod
     def fromImage(cls, img):
-        """Creates a bounding box from the corners defined by an image volume"""
+        """
+        Creates a bounding box from the corners defined by an image
+        
+        Parameters:
+
+        - img -- An nibabel image
+        """
         img_shape = img.get_data().shape
         corners = np.array([[0, 0, 0, 1.],
                             [img_shape[0], img_shape[1], img_shape[2], 1.]])
@@ -34,11 +52,12 @@ class Box:
     @classmethod
     def fromMask(cls, img, padding=0):
         """
-        Creates a bounding box that encloses all non-zero voxels in a volume.
+        Creates a bounding box that encloses all non-zero voxels in a volume
         
         Parameters:
-            img:     The volume to create the bounding-box from
-            padding: Number of extra voxels to pad the resulting box by
+        
+        - img -- The volume to create the bounding-box from
+        - padding -- Number of extra voxels to pad the resulting box by
         """
         data = img.get_data()
 
