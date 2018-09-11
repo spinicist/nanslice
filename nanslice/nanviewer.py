@@ -1,18 +1,27 @@
 #!/usr/bin/env python
-"""qiview.py --- Simple Viewer for 'dual-coded' neuroimaging overlays
+"""nanviewer.py
 
-Adapted from http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html
+A simple viewer to demonstrate 'dual-coded' neuroimaging overlays. This is installed by PIP
+as ``nanviewer``.
 
-Copyright (C) 2017 Tobias Wood
+Dual-coding is described here https://www.cell.com/neuron/fulltext/S0896-6273(12)00428-X.
+Python code adapted from http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html.
 
-This code is subject to the terms of the Mozilla Public License. A copy can be
-found in the root directory of the project.
+The viewer can be started on the command-line by calling:
+
+``nanviewer image.nii.gz``
+
+To add a dual-coded overlay, call:
+
+``nanviewer structural.nii.gz --overlay beta.nii.gz --overlay_alpha pval.nii.gz``
+
+For discussion of other options, please see the :py:mod:`~nanslice.nanslicer`
+documentation - the majority of options are the same across both programs.
 """
 import sys
 import argparse
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
-import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -22,11 +31,32 @@ from .colorbar import colorbar, alphabar
 from .slicer import Slicer, axis_indices, axis_map
 from .layer import Layer, blend_layers
 
-PROG_NAME = 'QIView'
-PROG_VERSION = "0.1"
+PROG_NAME = 'NaNViewer'
+PROG_VERSION = "1.0"
 
-class QICanvas(FigureCanvas):
-    """Canvas to draw slices in."""
+def crosshairs(axis, point, direction, orient, color='g'):
+    """
+    Helper function to draw crosshairs on an axis
+    """
+    ind1, ind2 = axis_indices(axis_map[direction], orient)
+    vline = axis.axvline(x=point[ind1], color=color)
+    hline = axis.axhline(y=point[ind2], color=color)
+    return (vline, hline)
+
+def sample_point(img, point, order=1):
+    """
+    Helper function to sample an image at a single point (instead of a whole slice)
+    """
+    scale = np.mat(img.get_affine()[0:3, 0:3]).I
+    offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
+    s_point = np.dot(scale, point).T + offset[:]
+    return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
+
+
+class NaNCanvas(FigureCanvas):
+    """
+    Canvas to draw slices in
+    """
 
     def __init__(self, args, parent=None, width=5, height=4, dpi=100):
         self.layers = [Layer(args.base_image,
@@ -84,20 +114,10 @@ class QICanvas(FigureCanvas):
         self.directions = ('z', 'x', 'y')
         self.update_figure()
 
-    def crosshairs(self, axis, point, direction, orient, color='g'):
-        ind1, ind2 = axis_indices(axis_map[direction], orient)
-        vline = axis.axvline(x=point[ind1], color=color)
-        hline = axis.axhline(y=point[ind2], color=color)
-        return (vline, hline)
-
-    def sample_point(self, img, point, order=1):
-        scale = np.mat(img.get_affine()[0:3, 0:3]).I
-        offset = np.dot(-scale, img.get_affine()[0:3, 3]).T
-        s_point = np.dot(scale, point).T + offset[:]
-        return ndinterp.map_coordinates(img.get_data().squeeze(), s_point, order=order)
-
     def update_figure(self, hold=None):
-        """Updates the three axis views"""
+        """
+        Updates the three axis views
+        """
         #t0 = time.time()
         # Save typing and lookup time
         args = self.args
@@ -136,13 +156,16 @@ class QICanvas(FigureCanvas):
                                                              colors='k',
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
-            self._crosshairs[i] = self.crosshairs(self.axes[i], self.cursor,
-                                                  directions[i], self.args.orient)
+            self._crosshairs[i] = crosshairs(self.axes[i], self.cursor,
+                                             directions[i], self.args.orient)
         self._first_time = False
         #print('Update time:', (time.time() - t0)*1000, 'ms')
         self.draw()
 
     def handle_mouse_event(self, event):
+        """
+        Updates the slice locations and crosshair
+        """
         if event.button == 1:
             for i in range(3):
                 if event.inaxes == self.axes[i]:
@@ -152,55 +175,48 @@ class QICanvas(FigureCanvas):
                     self.update_figure(hold=i)
             msg = 'Cursor: ' + str(self.cursor)
             if len(self.layers) > 1:
-                color_val = self.sample_point(self.layers[1].base_image,
-                                              self.cursor,
-                                              self.args.interp_order)
+                color_val = sample_point(self.layers[1].base_image,
+                                         self.cursor,
+                                         self.args.interp_order)
                 msg = msg + ' ' + self.args.color_label + ': ' + str(color_val[0])
                 if self.layers[1].alpha_image:
-                    alpha_val = self.sample_point(self.layers[1].alpha_image,
-                                                  self.cursor,
-                                                  self.args.interp_order)
+                    alpha_val = sample_point(self.layers[1].alpha_image,
+                                             self.cursor,
+                                             self.args.interp_order)
                     msg = msg + ' ' + self.args.alpha_label + ': ' + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
 
-class QIViewWindow(QtWidgets.QMainWindow):
-    """Main window class"""
+class NaNViewWindow(QtWidgets.QMainWindow):
+    """
+    Main window class for the viewer
+    """
     def __init__(self, args):
         QtWidgets.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("application main window")
-
+        self.setWindowTitle("NaNView")
         self.file_menu = QtWidgets.QMenu('&File', self)
-        self.file_menu.addAction('&Quit', self.file_quit,
+        self.file_menu.addAction('&Quit', self._file_quit,
                                  QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
-
         self.help_menu = QtWidgets.QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
-
-        self.help_menu.addAction('&About', self.about)
-
+        self.help_menu.addAction('&About', self._about)
+        self.statusBar().showMessage("NaNViewer", 2000)
         self.main_widget = QtWidgets.QWidget(self)
-
-        layout = QtWidgets.QVBoxLayout(self.main_widget)
-        qicanvas = QICanvas(args, self.main_widget, width=5, height=4, dpi=100)
-        layout.addWidget(qicanvas)
-
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
+        layout = QtWidgets.QVBoxLayout(self.main_widget)
+        layout.addWidget(NaNCanvas(args, self.main_widget, width=5, height=4, dpi=100))
 
-        self.statusBar().showMessage("QIView", 2000)
-
-    def file_quit(self):
+    def _file_quit(self):
+        """Callback for quit menu entry"""
         self.close()
 
-    def close_event(self, event):
-        self.file_quit()
-
-    def about(self):
-        QtWidgets.QMessageBox.about(self, "About", """QIView
+    def _about(self):
+        """Callback for about menu entry"""
+        QtWidgets.QMessageBox.about(self, "About", """NaNViewer
 Copyright 2017 Tobias Wood
 
 A simple viewer for dual-coded overlays.
@@ -208,11 +224,18 @@ A simple viewer for dual-coded overlays.
 With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html""")
 
 def main(args=None):
-    parser = argparse.ArgumentParser(description='Takes aesthetically pleasing slices through MR images')
+    """
+    Main function.
+
+    Parameters:
+
+    - args -- Command-line arguments. See module documentation or command-line for full list
+    """
+    parser = argparse.ArgumentParser(description='Dual-coding viewer')
     add_common_arguments(parser)
     args = parser.parse_args()
     application = QtWidgets.QApplication(sys.argv)
-    window = QIViewWindow(args)
+    window = NaNViewWindow(args)
     window.setWindowTitle("%s" % PROG_NAME)
     window.show()
     sys.exit(application.exec_())

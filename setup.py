@@ -13,17 +13,17 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='nanslice',
-    version='0.1.0',
+    version='1.0.0',
     description='Scripts to slice and display neuroimages (probably stored in nifti format)',
     url='https://github.com/spinicist/nanslice',
     author='Tobias Wood',
     author_email='tobias.wood@kcl.ac.uk',
     license='MPL',
-    classifiers=['Development Status :: 3 - Alpha',
+    classifiers=['Development Status :: 4 - Beta',
                  'Intended Audience :: Neuroimagers',
-                 'Topic :: Imaging',
+                 'Topic :: Scientific/Engineering :: Visualization',
                  'License :: OSI Approved :: Mozilla Public License',
-                 'Proigramming Language :: Python :: 3',
+                 'Programming Language :: Python :: 3',
     ],
     keywords='neuroimaging nifti',
     packages=find_packages(),
@@ -31,7 +31,7 @@ setup(
         'console_scripts': [
             'nanslicer=nanslice.nanslicer:main',
             'nanviewer=nanslice.nanviewer:main',
-            'nanvideo=nanslice.nanvideo:main'
+            'nanscroll=nanslice.nanscroll:main'
         ],
     },
 )

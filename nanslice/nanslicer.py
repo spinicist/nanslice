@@ -2,7 +2,42 @@
 """
 nanslicer.py
 
-The nanslicer command-line tool
+A command-line tool for producing figures with slices through MR images. This is installed
+by PIP as ``nanslicer``. Supports overlays, dual-coded overlays and colorbars. Dual-coding is
+described here https://www.cell.com/neuron/fulltext/S0896-6273(12)00428-X.
+
+The minimum command-line call is:
+
+``nanslicer image.nii.gz output.png``
+
+To add a dual-coded overlay, call:
+
+``nanslicer structural.nii.gz output.png --overlay beta.nii.gz --overlay_alpha pval.nii.gz``
+
+There are a lot of command-line options to control the colormaps and scaling. Type
+``nanviewer --help`` to see a full list. The number of slices can be controlled with
+the ``--slice_rows`` and ``--slice_cols`` arguments, or you can choose ``--three_axis``.
+The ``--slice_axis`` and ``--slice_lims`` arguments specify the axis along which to slice,
+and where to start and stop along it (expressed as fractions), for example:
+
+``nanslicer structural.nii.gz --slice_axis x --slice_lims 0.25 0.75``
+
+If you have timeseries data as the base image, you can plot the same slice through
+each volume with ``--timeseries``, or you can choose the volume in the timeseries to use
+with ``--volume N`` (the default is the first).
+
+Controlling image quality is slightly complicated because there are two interpolation
+steps. First we have to sample the 3D volumes to produce 2D slices to arbitrary
+precision. Then, ``matplotlib`` has to sample those slices to plot them to the canvas.
+The first step is controlled by ``--samples N``, which controls the number of points to sample in
+each direction of the slice, and ``--interp_order N``, which controls the quality
+of the interpolation. The defaults are 128 and 1 (linear interpolation). Increase
+them to increase the quality. The ``matplotlib`` step is controlled by ``--interp METHOD``,
+and can be any valid ``matplotlib` interpolation method. The default is ``hanning``,
+for increased speed this can be changed to ``linear`` or ``none``. From experience,
+it is the quality of the ``matplotlib`` step which is the dominant factor in figure
+quality, hence the defaults of fairly fast sampling in the slicing step but using
+Hanning sampling in the ``matplotlib`` step.
 """
 import argparse
 import numpy as np
@@ -14,6 +49,13 @@ from .box import Box
 from .slicer import Slicer
 from .layer import Layer, blend_layers
 def main(args=None):
+    """
+    The main function that is called from the command line.
+
+    Parameters:
+
+    - args -- The command-line arguments. See module docstring or command-line help for a full list
+    """
     parser = argparse.ArgumentParser(description='Takes aesthetically pleasing slices through MR images')
     add_common_arguments(parser)
     parser.add_argument('output', help='Output image name', type=str)

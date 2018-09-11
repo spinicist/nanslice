@@ -91,7 +91,7 @@ class Slicer:
         - volume -- If sampling 4D data, specify the desired volume
         
         """
-        physical = self._get_voxel_coords(img.affine)
+        physical = self.get_voxel_coords(img.affine)
         # Support timeseries by adding an extra co-ord specifying the volume
         if len(img.shape) == 4:
             vol_index = np.tile(volume, physical.shape[1:3])[np.newaxis, :]
