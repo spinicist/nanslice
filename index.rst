@@ -1,7 +1,13 @@
-NANSlice - Not ANother Slice tool
-====================================
+.. raw:: html
 
-(Alternative names are Not-A-Number Slice tool & Neuroimaging ANalysis Slice tool)
+  <h1><div id="package_name"></div></h1>
+  <script>
+    (function() {
+        var names = [{text: "Not ANother Slice tool",}, {text: "Not A Number Slice tool",}, {text: "Neuroimaging ANalysis Slice tool",}];
+        name_index = Math.floor(Math.random() * names.length);
+        document.getElementById("package_name").innerHTML = "NaNSlice - " + names[name_index].text;
+    })();
+  </script>
 
 This is a pure Python module for taking slices through MR Images and displaying
 them in beautiful ways. It is friendly to both clinical and pre-clinical data,
