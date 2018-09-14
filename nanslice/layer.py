@@ -35,7 +35,7 @@ class Layer:
 
     """
 
-    def __init__(self, image, scale=1.0, volume=0, interp_order=1.0,
+    def __init__(self, image, scale=1.0, volume=0, interp_order=1,
                  cmap=None, clim=None, label='',
                  mask=None, mask_threshold=0,
                  alpha=None, alpha_lims=None, alpha_scale=1.0, alpha_label=''):

@@ -87,11 +87,8 @@ def main(args=None):
                             interp_order=args.interp_order))
 
     print('*** Setup')
-    if layers[0].mask_image:
-        bbox = Box.fromMask(layers[0].mask_image)
-    else:
-        bbox = Box.fromImage(layers[0].image)
-    print(bbox)
+    bbox = layers[0].bbox
+    print(layers[0].bbox)
     if args.three_axis:
         args.slice_rows = 1
         args.slice_cols = 3
@@ -99,8 +96,7 @@ def main(args=None):
         slice_total = 3
         slice_pos = np.tile(bbox.center, (3, 1))
     elif args.timeseries:
-        # slice_pos = bbox.center
-        slice_pos = bbox.start + bbox.diag * 0.4
+        slice_pos = bbox.center
         slice_total = layers[0].image.shape[3]
     else:
         slice_total = args.slice_rows*args.slice_cols
