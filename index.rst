@@ -3,7 +3,10 @@
   <h1><div id="package_name"></div></h1>
   <script>
     (function() {
-        var names = [{text: "Not ANother Slice tool",}, {text: "Not A Number Slice tool",}, {text: "Neuroimaging ANalysis Slice tool",}];
+        var names = [{text: "Not ANother Slice tool",},
+                     {text: "Not A Number Slice tool",},
+                     {text: "Neuroimaging ANalysis Slice tool",},
+                     {text: "Non-Alliteratively Named Slice tool"}];
         name_index = Math.floor(Math.random() * names.length);
         document.getElementById("package_name").innerHTML = "NaNSlice - " + names[name_index].text;
     })();
@@ -15,7 +18,11 @@ and includes dual-coding (http://dx.doi.org/10.1016/j.neuron.2012.05.001) overla
 
 This is an example of an image you can make with it:
 
-.. image:: doc/screenshot.png
+.. image:: doc/dualcode.png
+
+And here is an example of the viewer application:
+
+.. image:: doc/viewer.png
 
 Along with the :py:mod:`~nanslice` module that can be used in your Python scripts, there are
 several utitlity functions for use in :py:mod:`~nanslice.jupyter` notebooks, including a three-plane

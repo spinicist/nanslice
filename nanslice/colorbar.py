@@ -12,7 +12,7 @@ import numpy as np
 from . import slice_func
 
 def colorbar(axes, cm_name, clims, clabel,
-             black_backg=True, show_ticks=True, tick_fmt='{:.1f}', orient='h'):
+             black_backg=True, show_ticks=True, tick_fmt='{:.2g}', orient='h'):
     """
     Plots a colorbar in the specified axes
     
@@ -69,7 +69,7 @@ def colorbar(axes, cm_name, clims, clabel,
 
 def alphabar(axes, cm_name, clims, clabel,
              alims, alabel, alines=None, alines_colors=('k',), alines_styles=('solid',),
-             cprecision=1, aprecision=0,
+             cfmt='{:.3g}', afmt='{:.2g}',
              black_backg=True, orient='h'):
     """
     Plots a 2D 'alphabar' with color and transparency axes in the specified matplotlib axes object
@@ -106,10 +106,8 @@ def alphabar(axes, cm_name, clims, clabel,
     axes.imshow(acmap, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
 
     cticks = (clims[0], np.sum(clims)/2, clims[1])
-    cfmt = '{:.'+str(cprecision)+'f}'
     clabels = (cfmt.format(clims[0]), clabel, cfmt.format(clims[1]))
     aticks = (alims[0], np.sum(alims)/2, alims[1])
-    afmt = '{:.'+str(aprecision)+'f}'
     alabels = (afmt.format(alims[0]), alabel, afmt.format(alims[1]))
 
     if orient == 'h':
@@ -124,11 +122,11 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.set_yticklabels(clabels, rotation='vertical', va='center')
     
     if alines:
-        for ay, ac, astyle in zip(alines, alines_colors, alines_styles):
+        for pos, color, style in zip(alines, alines_colors, alines_styles):
             if orient == 'h':
-                axes.axhline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
+                axes.axhline(y=pos, linewidth=1.5, linestyle=style, color=color)
             else:
-                axes.axvline(y=ay, linewidth=1.5, linestyle=astyle, color=ac)
+                axes.axvline(x=pos, linewidth=1.5, linestyle=style, color=color)
     
     if black_backg:
         axes.spines['bottom'].set_color('w')

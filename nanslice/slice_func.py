@@ -59,7 +59,17 @@ def mask(img, img_mask, back=np.array((0, 0, 0))):
     - img_mask -- The mask image
     - back -- Background value
     """
-    return blend(back, img, img_mask)
+    if img_mask is None:
+        return img
+    if back.ndim == 1:
+        masked = np.where(img_mask[:, :, np.newaxis], img, back[np.newaxis, np.newaxis, :])
+    elif back.ndim == 2:
+        masked = np.where(img_mask[:, :, np.newaxis], img, back[:, :, np.newaxis])
+    elif back.ndim == 3:
+        masked = np.where(img_mask[:, :, np.newaxis], img, back)
+    else:
+        raise Exception('Masking requires a 1, 2, or 3 dimensional array as the background')
+    return masked
 
 def blur(img, sigma=1):
     """

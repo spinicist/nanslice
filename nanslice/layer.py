@@ -29,7 +29,7 @@ class Layer:
     - mask           -- A mask image to use with this layer
     - mask_threshold -- Apply a threshold (lower) to the mask
     - alpha       -- An alpha (transparency) image to use with this layer
-    - alpha_lims  -- Specify the limits/window for the alpha image
+    - alpha_lim  -- Specify the limits/window for the alpha image
     - alpha_scale -- Scaling factor for the alpha image
     - alpha_label -- Label for the alpha axis on alphabars
 
@@ -38,7 +38,7 @@ class Layer:
     def __init__(self, image, scale=1.0, volume=0, interp_order=1,
                  cmap=None, clim=None, label='',
                  mask=None, mask_threshold=0,
-                 alpha=None, alpha_lims=None, alpha_scale=1.0, alpha_label=''):
+                 alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label=''):
         self.image = ensure_image(image)
         self.scale = scale
         self.interp_order = interp_order
@@ -69,22 +69,28 @@ class Layer:
 
         if check_path(alpha):
             self.alpha_image = load(str(alpha))
-            if alpha_lims:
-                self.alpha_lims = alpha_lims
+            if alpha_lim:
+                self.alpha_lim = alpha_lim
             else:
-                self.alpha_lims = nanpercentile(self.alpha_image.get_data(), (2, 98))
-            self.alpha_label = alpha_label
+                self.alpha_lim = nanpercentile(self.alpha_image.get_data(), (2, 98))
         elif alpha:
-            self.alpha_image = None
-            self.alpha = alpha
-            self.alpha_label = alpha_label
+            self.alpha_image = np.ones_like(self.image) * alpha
         else:
             self.alpha_image = None
-            self.alpha = 1.0
-            self.alpha_label = alpha_label
+        self.alpha_label = alpha_label
         self.alpha_scale = alpha_scale
 
     def get_slice(self, slicer):
+        """
+        Returns a slice through the base image
+
+        Parameters:
+
+        - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
+        """
+        return slicer.sample(self.image, self.interp_order, self.scale, self.volume)
+
+    def get_color(self, slicer):
         """
         Returns a colorized slice through the base image contained in the Layer
 
@@ -92,12 +98,16 @@ class Layer:
 
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         """
-        slc = slicer.sample(self.image, self.interp_order, self.scale, self.volume)
-        color_slc = slice_func.colorize(slc, self.cmap, self.clim)
+        return slice_func.colorize(self.get_slice(slicer), self.cmap, self.clim)
+
+    def get_mask(self, slicer):
         if self.mask_image:
             mask_slc = slicer.sample(self.mask_image, 0) > self.mask_threshold
-            color_slc = slice_func.mask(color_slc, mask_slc)
-        return color_slc
+        elif self.mask_threshold:
+            mask_slc = slicer.sample(self.image, self.interp_order, self.scale, self.volume) > self.mask_threshold
+        else:
+            return None
+        return mask_slc
 
     def get_alpha(self, slicer):
         """
@@ -110,7 +120,7 @@ class Layer:
         
         if self.alpha_image:
             alpha_slice = slicer.sample(self.alpha_image, self.interp_order, self.alpha_scale)
-            alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lims)
+            alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lim)
             return alpha_slice
         else:
             return None
@@ -124,7 +134,7 @@ class Layer:
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         - axes   -- A matplotlib axes object
         """
-        slc = self.get_slice(slicer)
+        slc = self.get_color(slicer)
         cax = axes.imshow(slc, origin='lower', extent=slicer.extent, interpolation='nearest')
         axes.axis('off')
         return cax
@@ -138,10 +148,12 @@ def blend_layers(layers, slicer):
     - layers -- An iterable (e.g. list/tuple) of :py:class:`Layer` objects
     - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice the layers with    
     """
-    slc = layers[0].get_slice(slicer)
+    slc = slice_func.mask(layers[0].get_color(slicer), layers[0].get_mask(slicer))
     for next_layer in layers[1:]:
-        next_slc = next_layer.get_slice()
-        next_alpha = next_layer.get_alpha()
-        if next_alpha:
+        next_slc = next_layer.get_color(slicer)
+        if next_layer.alpha_image:
+            next_alpha = next_layer.get_alpha(slicer)
             slc = slice_func.blend(slc, next_slc, next_alpha)
+        else:
+            slc = slice_func.mask(next_slc, next_layer.get_mask(slicer), slc)
     return slc

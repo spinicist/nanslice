@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.animation import FuncAnimation
 from .box import Box
-from .slicer import Slicer, axis_map
+from .slicer import Slicer, Axis_map
 from .layer import Layer, blend_layers
 from .util import add_common_arguments
 
@@ -51,7 +51,7 @@ def main(args=None):
     else:
         bbox = Box.fromImage(layers[0].image)
     print(bbox)
-    slices = layers[0].image.shape[axis_map[args.slice_axis]]
+    slices = layers[0].image.shape[Axis_map[args.slice_axis]]
     slice_pos = bbox.start + \
                 bbox.diag * np.linspace(args.slice_lims[0], args.slice_lims[1],
                                         slices)[:, np.newaxis]

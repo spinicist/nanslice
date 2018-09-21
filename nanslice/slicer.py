@@ -8,17 +8,17 @@ image arrays that can be drawn with matlplotlib.
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
 
-axis_map = {'x':0, 'y':1, 'z':2}
-orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
+Axis_map = {'x':0, 'y':1, 'z':2}
+Orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
               'preclin': ({0: 2, 1: 2, 2: 0}, {0: 1, 1: 0, 2: 1})}
 def axis_indices(axis, orient='clin'):
     """
     Returns a pair of indices corresponding to right/up for the given orientation.
     Parameters:
-    axis:   The perpendicular axis to the slice. Use axis_map to convert between x/y/z and 0/1/2
+    axis:   The perpendicular axis to the slice. Use Axis_map to convert between x/y/z and 0/1/2
     orient: Either 'clin' or 'preclin'
     """
-    this_orient = orient_map[orient]
+    this_orient = Orient_map[orient]
     return (this_orient[0][axis], this_orient[1][axis])
 
 class Slicer:
@@ -37,13 +37,13 @@ class Slicer:
     """
     def __init__(self, bbox, pos, axis, samples=64, orient='clin'):
         try:
-            ind_0 = axis_map[axis] # If someone passed in x/y/z
+            ind_0 = Axis_map[axis] # If someone passed in x/y/z
         except KeyError:
             ind_0 = axis # Assume it was an integer
 
         ind_1, ind_2 = axis_indices(ind_0, orient=orient)
         start = np.copy(bbox.start)
-        start[ind_0] = pos[ind_0]
+        start[ind_0] = pos
         dir_rt = np.zeros((3,))
         dir_up = np.zeros((3,))
         dir_rt[ind_1] = bbox.diag[ind_1]

@@ -28,7 +28,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5 import QtCore, QtWidgets
 from .util import add_common_arguments
 from .colorbar import colorbar, alphabar
-from .slicer import Slicer, axis_indices, axis_map
+from .slicer import Slicer, axis_indices, Axis_map
 from .layer import Layer, blend_layers
 
 PROG_NAME = 'NaNViewer'
@@ -38,7 +38,7 @@ def crosshairs(axis, point, direction, orient, color='g'):
     """
     Helper function to draw crosshairs on an axis
     """
-    ind1, ind2 = axis_indices(axis_map[direction], orient)
+    ind1, ind2 = axis_indices(Axis_map[direction], orient)
     vline = axis.axvline(x=point[ind1], color=color)
     hline = axis.axhline(y=point[ind2], color=color)
     return (vline, hline)
@@ -67,11 +67,11 @@ class NaNCanvas(FigureCanvas):
         if args.overlay:
             self.layers.append(Layer(args.overlay,
                                      cmap=args.overlay_map,
-                                     clim=args.overlay_lims,
+                                     clim=args.overlay_lim,
                                      mask=args.overlay_mask,
                                      mask_threshold=args.overlay_mask_thresh,
-                                     alpha=args.alpha,
-                                     alpha_lims=args.alpha_lims,
+                                     alpha=args.overlay_alpha,
+                                     alpha_lim=args.overlay_alpha_lim,
                                      interp_order=args.interp_order))
 
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
@@ -90,8 +90,8 @@ class NaNCanvas(FigureCanvas):
             gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
             self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
             if args.overlay_alpha:
-                alphabar(self.cbar_axis, args.overlay_map, args.overlay_lims, args.overlay_label,
-                         args.overlay_alpha_lims, args.overlay_alpha_label)
+                alphabar(self.cbar_axis, args.overlay_map, args.overlay_lim, args.overlay_label,
+                         args.overlay_alpha_lim, args.overlay_alpha_label)
             else:
                 if args.base_map:
                     colorbar(self.cbar_axis, self.layers[0].cmap,
@@ -102,10 +102,8 @@ class NaNCanvas(FigureCanvas):
         else:
             gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
         self.axes = [self.fig.add_subplot(gs, facecolor='black') for gs in gs1]
-        
         self.cursor = self.layers[0].bbox.center
         self.args = args
-        self.img_contour = None
         self._slices = [None, None, None]
         self._images = [None, None, None]
         self._contours = [None, None, None]
@@ -132,7 +130,7 @@ class NaNCanvas(FigureCanvas):
                 crosshair[1].remove()
         for i in range(3):
             if i != hold:
-                self._slices[i] = Slicer(bbox, cursor, directions[i],
+                self._slices[i] = Slicer(bbox, cursor[i], directions[i],
                                          args.samples, orient=args.orient)
                 sl_final = blend_layers(self.layers, self._slices[i])
                 # Draw image
@@ -147,13 +145,13 @@ class NaNCanvas(FigureCanvas):
                     self._images[i].set_data(sl_final)
 
                 # Draw contours. For contours remove collection manually
-                if self.img_contour:
+                if self.args.contour:
                     if not self._first_time:
                         for coll in self._contours[i].collections:
                             coll.remove()
-                    sl_contour = self._slices[i].sample(self.img_contour, order=args.interp_order)
+                    sl_contour = self.layers[1].get_slice(self._slices[i])
                     self._contours[i] = self.axes[i].contour(sl_contour, levels=self.args.contour,
-                                                             colors='k',
+                                                             colors=args.contour_color, linestyles=args.contour_style,
                                                              linewidths=1.0, origin='lower',
                                                              extent=self._slices[i].extent)
             self._crosshairs[i] = crosshairs(self.axes[i], self.cursor,
@@ -169,7 +167,7 @@ class NaNCanvas(FigureCanvas):
         if event.button == 1:
             for i in range(3):
                 if event.inaxes == self.axes[i]:
-                    ind1, ind2 = axis_indices(axis_map[self.directions[i]], self.args.orient)
+                    ind1, ind2 = axis_indices(Axis_map[self.directions[i]], self.args.orient)
                     self.cursor[ind1] = event.xdata
                     self.cursor[ind2] = event.ydata
                     self.update_figure(hold=i)

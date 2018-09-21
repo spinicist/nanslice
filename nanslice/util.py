@@ -45,7 +45,9 @@ def add_common_arguments(parser):
 
     parser.add_argument('--overlay', type=str,
                         help='Add color overlay')
-    parser.add_argument('--overlay_lims', type=float, nargs=2, default=(-1, 1),
+    parser.add_argument('--overlay_map', type=str, default='RdYlBu_r',
+                        help='Overlay colormap, default = RdYlBu_r')
+    parser.add_argument('--overlay_lim', type=float, nargs=2, default=(-1, 1),
                         help='Overlay window, default=-1 1')
     parser.add_argument('--overlay_mask', type=str,
                         help='Mask color image')
@@ -57,18 +59,16 @@ def add_common_arguments(parser):
                         help='Label for overlay color axis')
     parser.add_argument('--overlay_alpha', type=str,
                         help='Image for transparency-coding of overlay')
-    parser.add_argument('--overlay_alpha_lims', type=float, nargs=2, default=(0.5, 1.0),
+    parser.add_argument('--overlay_alpha_lim', type=float, nargs=2, default=(0.5, 1.0),
                         help='Overlay Alpha/transparency window, default=0.5 1.0')
     parser.add_argument('--overlay_alpha_label', type=str, default='1-p',
                         help='Label for overlay alpha/transparency axis')
-    parser.add_argument('--overlay_contour_image', type=str,
-                        help='Image to define contour (if none, use alpha image)')
-    parser.add_argument('--overlay_contour', type=float, action='append',
-                        help='Add an alpha image contour (can be multiple)')
-    parser.add_argument('--overlay_contour_color', type=str, action='append',
-                        help='Choose contour colour')
-    parser.add_argument('--overlay_contour_style', type=str, action='append',
-                        help='Choose contour line-style')
+    parser.add_argument('--contour', type=float, action='append',
+                        help='Add alpha image contours (can be multiple)')
+    parser.add_argument('--contour_color', type=str, action='append', default='k',
+                        help='Choose contour colors')
+    parser.add_argument('--contour_style', type=str, action='append', default='-',
+                        help='Choose contor line-styles')
 
     parser.add_argument('--samples', type=int, default=128,
                         help='Number of samples for slicing, default=128')

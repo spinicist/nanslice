@@ -46,7 +46,7 @@ import matplotlib.gridspec as gridspec
 from .util import add_common_arguments
 from .colorbar import colorbar, alphabar
 from .box import Box
-from .slicer import Slicer
+from .slicer import Slicer, Axis_map
 from .layer import Layer, blend_layers
 def main(args=None):
     """
@@ -64,7 +64,7 @@ def main(args=None):
     parser.add_argument('--slice_axis', type=str, default='z', help='Axis to slice along (x/y/z)')
     parser.add_argument('--three_axis', help='Make a 3 axis (x,y,z) plot', action='store_true')
     parser.add_argument('--timeseries', action='store_true', help='Plot the same slice through each volume in a time-series')
-    parser.add_argument('--volume', type=int, default=1, help='Plot one volume from a timeseries')
+    parser.add_argument('--volume', type=int, default=0, help='Plot one volume from a timeseries')
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
                         help='Slice between these limits along the axis, default=0.1 0.9')
     parser.add_argument('--bar_pos', type=str, default='bottom', help='Position of color-bar (bottom / right)')
@@ -89,19 +89,20 @@ def main(args=None):
     print('*** Setup')
     bbox = layers[0].bbox
     print(layers[0].bbox)
+    args.slice_axis = Axis_map[args.slice_axis]
     if args.three_axis:
         args.slice_rows = 1
         args.slice_cols = 3
         args.slice_axis = ['x', 'y', 'z']
         slice_total = 3
-        slice_pos = np.tile(bbox.center, (3, 1))
+        slice_pos = (bbox.center[0], bbox.center[1], bbox.center[2])
     elif args.timeseries:
-        slice_pos = bbox.center
+        slice_pos = bbox.center[args.slice_axis]
         slice_total = layers[0].image.shape[3]
     else:
         slice_total = args.slice_rows*args.slice_cols
+        slice_pos = bbox.start[args.slice_axis] + bbox.diag[args.slice_axis] * np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)
         args.slice_axis = [args.slice_axis] * slice_total
-        slice_pos = bbox.start + bbox.diag * np.linspace(args.slice_lims[0], args.slice_lims[1], slice_total)[:, np.newaxis]
     print(slice_total, ' slices in ', args.slice_rows, ' rows and ', args.slice_cols, ' columns')
 
     if args.orient == 'preclin':
@@ -123,18 +124,18 @@ def main(args=None):
             sp = slice_pos
             axis = args.slice_axis
         else:
-            sp = slice_pos[s, :]
+            sp = slice_pos[s]
             axis = args.slice_axis[s]
         
         print('Slice pos ', sp)
-        sl = Slicer(bbox, sp, axis, args.samples, orient=args.orient)
-        sl_final = blend_layers(layers, sl)
-        ax.imshow(sl_final, origin=origin, extent=sl.extent, interpolation=args.interp)
+        slcr = Slicer(bbox, sp, axis, args.samples, orient=args.orient)
+        sl_final = blend_layers(layers, slcr)
+        ax.imshow(sl_final, origin=origin, extent=slcr.extent, interpolation=args.interp)
         ax.axis('off')
-        # if img_contour:
-        #     sl_contour = sl.sample(img_contour, order=args.interp_order)
-        #     ax.contour(sl_contour, levels=args.contour, origin=origin, extent=sl.extent,
-        #             colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
+        if args.contour:
+            sl_contour = layers[1].get_alpha(slcr)
+            ax.contour(sl_contour, levels=args.contour, origin=origin, extent=sl.extent,
+                    colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
