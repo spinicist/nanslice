@@ -10,7 +10,7 @@ If you find the tools useful the author would love to hear from you.
 
 # Brief Description #
 
-![Screenshot](screenshot.png)
+![Screenshot](doc/dualcode.png)
 
 This is a pure Python module for creating slices through neuro-imaging datasets.
 The main motivation for building this was to implement the 'Dual-Coding'
@@ -18,6 +18,8 @@ visualisation method that can be found in this paper:
 http://dx.doi.org/10.1016/j.neuron.2012.05.001. However, it then expanded to
 include standard visualisation methods, and an interactive viewer for Jupyter
 notebooks.
+
+Documentation can be found at https://nanslice.readthedocs.io/en/latest/.
 
 In dual-coding instead of plotting thresholded blobs of T-statistics or p-values
 on top of structural images, transparency (or alpha) is used to convey the 
@@ -40,32 +42,9 @@ luck with your reviewers.
 
 # Installation #
 
-This module has not yet been uploaded to `PyPI` as it is still in development.
-Hence, to install, download or clone the git repository and then run
-`pip install .` from within the top-level directory. If you plan to update
-frequently or contribute, consider using the `pip install -e .` version.
-
-# Usage #
-
-There are four ways to use this module. The first, and least user-friendly, is
-to directly import the module and use the `Slice` object to construct your own
-images. A more detailed guide on how to do this will be written in future.
-
-The second and third are to use the `nanslicer` and `nanviewer` scripts. These
-are installed to an appropriate directory so should be available on your path.
-Run the programs without arguments to see the help message. Basic usage is to
-pass a single image, e.g. `nanslicer input.nii test.png` or
-`nanviewer input.nii`.
-
-The fourth is to use the module within a Jupyter notebook. In this case, the
-following is a bare minimum to run the interactive viewer:
-
-```
-%matplotlib nbagg
-import nanslice.jupyter as nsjupyter
-img = nib.load('img.nii.gz')
-nsjupyter.interactive(img)
-```
+NaNSlice is available on `PyPI`. Run `pip install nanslice` to install the
+stable version. Alternatively, clone the repository from Github and then run
+`pip install -e .` to use the development version.
 
 # Performance #
 
