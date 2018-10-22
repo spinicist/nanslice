@@ -21,6 +21,8 @@ notebooks.
 
 Documentation can be found at https://nanslice.readthedocs.io/en/latest/.
 
+A Jupyter Notebook demonstrating the module can be found at https://mybinder.org/v2/gh/spinicist/nanslice/master?filepath=doc%2Fexample.ipynb.
+
 In dual-coding instead of plotting thresholded blobs of T-statistics or p-values
 on top of structural images, transparency (or alpha) is used to convey the 
 p-value of T-statistic, while color can be used to convey the effect size or

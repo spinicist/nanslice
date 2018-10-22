@@ -14,7 +14,9 @@
 
 This is a pure Python module for taking slices through MR Images and displaying
 them in beautiful ways. It is friendly to both clinical and pre-clinical data,
-and includes dual-coding (http://dx.doi.org/10.1016/j.neuron.2012.05.001) overlays.
+and includes `dual-coding <http://dx.doi.org/10.1016/j.neuron.2012.05.001>`_ overlays.
+
+`Here <https://mybinder.org/v2/gh/spinicist/nanslice/master?filepath=doc%2Fexample.ipynb>`_ is a Jupyter Notebook demonstrating the functionality.
 
 This is an example of an image you can make with it:
 
@@ -33,12 +35,12 @@ viewer. There are also three command line tools that will installed to your $PAT
 - :py:mod:`~nanslice.nanvideo` Converts time-series images to a movie file for easy viewing.
 
 Why does :py:mod:`~nanslice` exist when there are plenty of other great MR viewing tools, e.g.
-[FSLEyes](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLeyes) or
-[MRIcroGL](http://www.cabiatl.com/mricrogl/)? There are three reasons:
+`FSLEyes <https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FSLeyes>`_ or
+`MRIcroGL <http://www.cabiatl.com/mricrogl>`_? There are three reasons:
 
 - Compatibility with pre-clinical data. Small animals (rodents) are scanned in a different orientation to humans, and hence have different definitions of superior-inferior and posterior-anterior. This makes using such images with clinically focussed tools tedious.
-- Support for [dual-coding overlays](https://www.cell.com/neuron/fulltext/S0896-6273(12)00428-X)
-- [Inner-Platform Effect](https://en.wikipedia.org/wiki/Inner-platform_effect). Seen as you have to learn scripting languages if you want to have repeatable plots in other tools, you might as well build your plots with a common language straight away.
+- Support for `dual-coding overlays <https://www.cell.com/neuron/fulltext/S0896-6273(12)00428-X>`_
+- `Inner-Platform Effect <https://en.wikipedia.org/wiki/Inner-platform_effect>`_. Seen as you have to learn scripting languages if you want to have repeatable plots in other tools, you might as well build your plots with a common language straight away.
 
 (Note: I love both MRIcroGL and FSLEyes, I use them all the time)
 
