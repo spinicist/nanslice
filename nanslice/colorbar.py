@@ -11,11 +11,12 @@ images are true-color RGB arrays. Hence we need to roll our own colorbar as well
 import numpy as np
 from . import slice_func
 
+
 def colorbar(axes, cm_name, clims, clabel,
-             black_backg=True, show_ticks=True, tick_fmt='{:.2g}', orient='h'):
+             black_backg=True, show_ticks=True, tick_fmt='{:.3g}', orient='h'):
     """
     Plots a colorbar in the specified axes
-    
+
     Parameters:
 
     - axes -- matplotlib axes instance to use for plotting
@@ -30,12 +31,15 @@ def colorbar(axes, cm_name, clims, clabel,
     steps = 32
     if orient == 'h':
         ext = (clims[0], clims[1], 0, 1)
-        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[np.newaxis, :], [steps, 1])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[
+                        np.newaxis, :], [steps, 1])
     else:
         ext = (0, 1, clims[0], clims[1])
-        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[
+                        :, np.newaxis], [1, steps])
     color = slice_func.colorize(cdata, cm_name, clims)
-    axes.imshow(color, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
+    axes.imshow(color, origin='lower', interpolation='hanning',
+                extent=ext, aspect='auto')
     if black_backg:
         forecolor = 'w'
     else:
@@ -49,7 +53,8 @@ def colorbar(axes, cm_name, clims, clabel,
             axes.set_yticks(())
         else:
             axes.set_yticks(ticks)
-            axes.set_yticklabels(labels, color=forecolor, rotation='vertical', va='center')
+            axes.set_yticklabels(labels, color=forecolor,
+                                 rotation='vertical', va='center')
             axes.set_xticks(())
     else:
         if orient == 'h':
@@ -67,13 +72,14 @@ def colorbar(axes, cm_name, clims, clabel,
     axes.xaxis.label.set_color(forecolor)
     axes.axis('on')
 
+
 def alphabar(axes, cm_name, clims, clabel,
              alims, alabel, alines=None, alines_colors=('k',), alines_styles=('solid',),
-             cfmt='{:.3g}', afmt='{:.2g}',
+             cfmt='{:.3g}', afmt='{:.3g}',
              black_backg=True, orient='h'):
     """
     Plots a 2D 'alphabar' with color and transparency axes in the specified matplotlib axes object
-    
+
     Parameters:
 
     - axes -- matplotlib axes instance to use for plotting
@@ -93,17 +99,20 @@ def alphabar(axes, cm_name, clims, clabel,
     steps = 32
     if orient == 'h':
         ext = (alims[0], alims[1], clims[0], clims[1])
-        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[np.newaxis, :], [steps, 1])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[
+                        np.newaxis, :], [steps, 1])
         alpha = np.tile(np.linspace(0, 1, steps)[:, np.newaxis], [1, steps])
     else:
         ext = (alims[0], alims[1], clims[0], clims[1])
-        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[:, np.newaxis], [1, steps])
+        cdata = np.tile(np.linspace(clims[0], clims[1], steps)[
+                        :, np.newaxis], [1, steps])
         alpha = np.tile(np.linspace(0, 1, steps)[np.newaxis, :], [steps, 1])
     color = slice_func.colorize(cdata, cm_name, clims)
-    
+
     backg = np.ones((steps, steps, 3))
     acmap = slice_func.blend(backg, color, alpha)
-    axes.imshow(acmap, origin='lower', interpolation='hanning', extent=ext, aspect='auto')
+    axes.imshow(acmap, origin='lower', interpolation='hanning',
+                extent=ext, aspect='auto')
 
     cticks = (clims[0], np.sum(clims)/2, clims[1])
     clabels = (cfmt.format(clims[0]), clabel, cfmt.format(clims[1]))
@@ -120,14 +129,16 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.set_xticklabels(alabels)
         axes.set_yticks(cticks)
         axes.set_yticklabels(clabels, rotation='vertical', va='center')
-    
+
     if alines:
         for pos, color, style in zip(alines, alines_colors, alines_styles):
             if orient == 'h':
-                axes.axhline(y=pos, linewidth=1.5, linestyle=style, color=color)
+                axes.axhline(y=pos, linewidth=1.5,
+                             linestyle=style, color=color)
             else:
-                axes.axvline(x=pos, linewidth=1.5, linestyle=style, color=color)
-    
+                axes.axvline(x=pos, linewidth=1.5,
+                             linestyle=style, color=color)
+
     if black_backg:
         axes.spines['bottom'].set_color('w')
         axes.spines['top'].set_color('w')
