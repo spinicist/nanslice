@@ -33,6 +33,8 @@ def main(args=None):
                         help='Axis to slice along (x/y/z)')
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.01, 0.99),
                         help='Slice between these limits along the axis, default=0.1 0.9')
+    parser.add_argument('--volume', type=int, default=0,
+                        help='Use this volume from a timeseries')
     parser.add_argument('--figsize', type=float, nargs=2, default=(6, 6),
                         help='Figure size (width, height) in inches')
     parser.add_argument('--dpi', type=int, default=150,
@@ -44,7 +46,7 @@ def main(args=None):
     print('*** Loading files')
     print('Loading base image: ', args.base_image)
     layers = [Layer(args.base_image, cmap=args.base_map, clim=args.base_lims, mask=args.mask,
-                    interp_order=args.interp_order), ]
+                    interp_order=args.interp_order, volume=args.volume), ]
     if args.overlay:
         layers.append(Layer(args.overlay, cmap=args.overlay_map, clim=args.overlay_lims,
                             mask=args.overlay_mask, mask_threshold=args.overlay_mask_thresh,
