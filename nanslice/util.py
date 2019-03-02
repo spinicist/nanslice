@@ -61,6 +61,8 @@ def add_common_arguments(parser):
                         help='Image for transparency-coding of overlay')
     parser.add_argument('--overlay_alpha_lim', type=float, nargs=2, default=(0.5, 1.0),
                         help='Overlay Alpha/transparency window, default=0.5 1.0')
+    parser.add_argument('--overlay_alpha_scale', type=float, default=1.0,
+                        help='Scaling factor for the alpha image')
     parser.add_argument('--overlay_alpha_label', type=str, default='1-p',
                         help='Label for overlay alpha/transparency axis')
     parser.add_argument('--contour', type=float, action='append',
