@@ -47,6 +47,7 @@ from .util import add_common_arguments
 from .colorbar import colorbar, alphabar
 from .box import Box
 from .slicer import Slicer, Axis_map
+from .slice_func import scale_clip
 from .layer import Layer, blend_layers
 def main(args=None):
     """
@@ -135,7 +136,8 @@ def main(args=None):
         ax.axis('off')
         if args.contour:
             sl_contour = layers[1].get_alpha(slcr)
-            ax.contour(sl_contour, levels=args.contour, origin=origin, extent=slcr.extent,
+            contour_levels = scale_clip(np.array(args.contour), args.overlay_alpha_lim)
+            ax.contour(sl_contour, levels=contour_levels, origin=origin, extent=slcr.extent,
                     colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
     if args.base_label or args.overlay_label:
