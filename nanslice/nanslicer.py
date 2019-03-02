@@ -79,11 +79,12 @@ def main(args=None):
                     interp_order=args.interp_order,volume=args.volume),]
     if args.base_lims is None:
         print('Base limits:', layers[0].clim)
-    
+
     if args.overlay:
-        layers.append(Layer(args.overlay, cmap=args.overlay_map, clim=args.overlay_lims,
+        layers.append(Layer(args.overlay, cmap=args.overlay_map, clim=args.overlay_lim,
                             mask=args.overlay_mask, mask_threshold=args.overlay_mask_thresh,
-                            alpha=args.alpha, alpha_lims=args.alpha_lims,
+                            alpha=args.overlay_alpha, alpha_lim=args.overlay_alpha_lim,
+                            alpha_scale=args.overlay_alpha_scale,
                             interp_order=args.interp_order))
 
     print('*** Setup')
@@ -126,7 +127,7 @@ def main(args=None):
         else:
             sp = slice_pos[s]
             axis = args.slice_axis[s]
-        
+
         print('Slice pos ', sp)
         slcr = Slicer(bbox, sp, axis, args.samples, orient=args.orient)
         sl_final = blend_layers(layers, slcr)
@@ -134,7 +135,7 @@ def main(args=None):
         ax.axis('off')
         if args.contour:
             sl_contour = layers[1].get_alpha(slcr)
-            ax.contour(sl_contour, levels=args.contour, origin=origin, extent=sl.extent,
+            ax.contour(sl_contour, levels=args.contour, origin=origin, extent=slcr.extent,
                     colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
     if args.base_label or args.overlay_label:
@@ -151,8 +152,8 @@ def main(args=None):
             orient='v'
         axes = plt.subplot(gs2[0], facecolor='black')
         if args.overlay_alpha:
-            alphabar(axes, args.overlay_map, args.overlay_lims, args.overlay_label,
-                        args.overlay_alpha_lims, args.overlay_alpha_label, orient=orient)
+            alphabar(axes, args.overlay_map, args.overlay_lim, args.overlay_label,
+                        args.overlay_alpha_lim, args.overlay_alpha_label, orient=orient)
         else:
             if args.base_map:
                 colorbar(axes, layers[0].cmap, layers[0].clim, args.base_label, orient=orient)
