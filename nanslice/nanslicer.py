@@ -137,8 +137,14 @@ def main(args=None):
         if args.contour:
             sl_contour = layers[1].get_alpha(slcr)
             contour_levels = scale_clip(np.array(args.contour), args.overlay_alpha_lim)
-            ax.contour(sl_contour, levels=contour_levels, origin=origin, extent=slcr.extent,
-                    colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
+
+            # Contour levels must be within the range of overlay alpha values.
+            # Ignore contour levels that are not within this range to prevent
+            # spurious contour lines from being drawn.
+            valid_levels = (np.min(sl_contour) < contour_levels) & (contour_levels < np.max(sl_contour))
+            if any(valid_levels):
+                ax.contour(sl_contour, levels=contour_levels[valid_levels], origin=origin, extent=slcr.extent,
+                        colors=args.contour_color, linestyles=args.contour_style, linewidths=1)
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
