@@ -29,6 +29,8 @@ def main(args=None):
         description="Makes a video scrolling through an image")
     add_common_arguments(parser)
     parser.add_argument('output', help='Output image name', type=str)
+    parser.add_argument('--slices', type=int, default=-1,
+                        help='Number of slices to scroll through')
     parser.add_argument('--slice_axis', type=str, default='z',
                         help='Axis to slice along (x/y/z)')
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.01, 0.99),
@@ -41,6 +43,8 @@ def main(args=None):
                         help='DPI for output figure')
     parser.add_argument('--fps', type=int, default=8,
                         help='Framerate for video (default 8)')
+    parser.add_argument('--bitrate', type=int,
+                        default=2048, help='Encoder bit-rate')
     args = parser.parse_args()
 
     print('*** Loading files')
@@ -60,8 +64,11 @@ def main(args=None):
         bbox = Box.fromImage(layers[0].image)
     print(bbox)
     args.slice_axis = Axis_map[args.slice_axis]
-    slices = layers[0].image.shape[args.slice_axis] * \
-        (args.slice_lims[1] - args.slice_lims[0])
+    if args.slices == -1:
+        slices = layers[0].image.shape[args.slice_axis]
+    else:
+        slices = args.slices
+    print(slices)
     slice_pos = bbox.start[args.slice_axis] + \
         bbox.diag[args.slice_axis] * np.linspace(args.slice_lims[0], args.slice_lims[1],
                                                  slices)
@@ -73,7 +80,7 @@ def main(args=None):
     gs1 = gridspec.GridSpec(1, 1)
     gs1.update(left=0.01, right=0.99, bottom=0.01,
                top=0.99, wspace=0.01, hspace=0.01)
-    fig = plt.figure(facecolor='black', figsize=(6, 6))
+    fig = plt.figure(facecolor='black', figsize=args.figsize, dpi=args.dpi)
 
     print('*** Init Frame')
     axes = plt.subplot(gs1[0], facecolor='black')
