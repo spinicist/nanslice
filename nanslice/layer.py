@@ -10,10 +10,11 @@ from . import slice_func
 from .box import Box
 from .util import ensure_image, check_path
 
+
 class Layer:
     """
     The Layer class
-    
+
     Each layer consists of a base MR image, with optional mask and alpha (transparency) images
     and their associated parameters (colormap, limits, scales etc.)
 
@@ -60,11 +61,12 @@ class Layer:
             self.clim = clim
         else:
             if len(self.image.shape) == 4:
-                imdata = self.image.dataobj[:,:,:,self.volume].squeeze()
+                imdata = self.image.dataobj[:, :, :, self.volume].squeeze()
             else:
                 imdata = self.image.dataobj
             if self.mask_image:
-                imdata = ma.masked_where(self.mask_image.get_data() > 0, imdata).compressed()
+                imdata = ma.masked_where(
+                    self.mask_image.get_data() > 0, imdata).compressed()
             self.clim = nanpercentile(imdata, (2, 98))
 
         if check_path(alpha):
@@ -72,7 +74,8 @@ class Layer:
             if alpha_lim:
                 self.alpha_lim = alpha_lim
             else:
-                self.alpha_lim = nanpercentile(self.alpha_image.get_data(), (2, 98))
+                self.alpha_lim = nanpercentile(
+                    self.alpha_image.get_data(), (2, 98))
         elif alpha:
             self.alpha_image = np.ones_like(self.image) * alpha
         else:
@@ -104,7 +107,8 @@ class Layer:
         if self.mask_image:
             mask_slc = slicer.sample(self.mask_image, 0) > self.mask_threshold
         elif self.mask_threshold:
-            mask_slc = slicer.sample(self.image, self.interp_order, self.scale, self.volume) > self.mask_threshold
+            mask_slc = slicer.sample(
+                self.image, self.interp_order, self.scale, self.volume) > self.mask_threshold
         else:
             return None
         return mask_slc
@@ -117,9 +121,10 @@ class Layer:
 
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         """
-        
+
         if self.alpha_image:
-            alpha_slice = slicer.sample(self.alpha_image, self.interp_order, self.alpha_scale)
+            alpha_slice = slicer.sample(
+                self.alpha_image, self.interp_order, self.alpha_scale)
             alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lim)
             return alpha_slice
         else:
@@ -128,27 +133,30 @@ class Layer:
     def plot(self, slicer, axes):
         """
         Plot a Layer into a Matplotlib axes using the provided Slicer
-        
+
         Parameters:
 
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         - axes   -- A matplotlib axes object
         """
-        slc = self.get_color(slicer)
-        cax = axes.imshow(slc, origin='lower', extent=slicer.extent, interpolation='nearest')
+        slc = slice_func.mask(self.get_color(slicer), self.get_mask(slicer))
+        cax = axes.imshow(slc, origin='lower',
+                          extent=slicer.extent, interpolation='nearest')
         axes.axis('off')
         return cax
+
 
 def blend_layers(layers, slicer):
     """
     Blends together a set of overlays using their alpha information
-    
+
     Parameters:
 
     - layers -- An iterable (e.g. list/tuple) of :py:class:`Layer` objects
     - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice the layers with    
     """
-    slc = slice_func.mask(layers[0].get_color(slicer), layers[0].get_mask(slicer))
+    slc = slice_func.mask(layers[0].get_color(
+        slicer), layers[0].get_mask(slicer))
     for next_layer in layers[1:]:
         next_slc = next_layer.get_color(slicer)
         if next_layer.alpha_image:
