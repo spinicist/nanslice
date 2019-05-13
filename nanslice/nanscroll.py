@@ -101,7 +101,7 @@ def main(args=None):
     print('*** Animate Frame')
     ani = FuncAnimation(fig, update_frame, frames=len(slice_pos))
     print('*** Save')
-    ani.save(args.output, fps=args.fps, bitrate=2048,
+    ani.save(args.output, fps=args.fps, bitrate=args.bitrate,
              savefig_kwargs={'facecolor': 'black'})
 
 
