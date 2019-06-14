@@ -4,7 +4,7 @@
 Contains the :py:class:`~nanslice.layer.Layer` class and the :py:func:`~nanslice.layer.blend_layers`
 function.
 """
-from numpy import nanpercentile, ma
+from numpy import isfinite, nanpercentile, ma, ones_like, array
 from nibabel import load
 from . import slice_func
 from .box import Box
@@ -33,18 +33,23 @@ class Layer:
     - alpha_lim  -- Specify the limits/window for the alpha image
     - alpha_scale -- Scaling factor for the alpha image
     - alpha_label -- Label for the alpha axis on alphabars
+    - background -- Background color for masking, either 'black' (default) or 'white'
 
     """
 
     def __init__(self, image, scale=1.0, volume=0, interp_order=1,
                  cmap=None, clim=None, label='',
                  mask=None, mask_threshold=0,
-                 alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label=''):
+                 alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label='',
+                 background='black'):
         self.image = ensure_image(image)
         self.scale = scale
         self.interp_order = interp_order
         self.volume = volume
         self.label = label
+
+        self.img_data = self.image.get_data()
+        self.img_data[~isfinite(self.img_data)] = 0
 
         self.mask_image = ensure_image(mask)
         self.mask_threshold = mask_threshold
@@ -60,14 +65,14 @@ class Layer:
         if clim:
             self.clim = clim
         else:
-            if len(self.image.shape) == 4:
-                imdata = self.image.dataobj[:, :, :, self.volume].squeeze()
+            if len(self.img_data) == 4:
+                limdata = self.img_data[:, :, :, self.volume].squeeze()
             else:
-                imdata = self.image.dataobj
+                limdata = self.img_data
             if self.mask_image:
-                imdata = ma.masked_where(
-                    self.mask_image.get_data() > 0, imdata).compressed()
-            self.clim = nanpercentile(imdata, (2, 98))
+                limdata = ma.masked_where(
+                    self.mask_image.get_data() > 0, self.img_data).compressed()
+            self.clim = nanpercentile(limdata, (2, 98))
 
         if check_path(alpha):
             self.alpha_image = load(str(alpha))
@@ -77,11 +82,16 @@ class Layer:
                 self.alpha_lim = nanpercentile(
                     self.alpha_image.get_data(), (2, 98))
         elif alpha:
-            self.alpha_image = np.ones_like(self.image) * alpha
+            self.alpha_image = ones_like(self.image) * alpha
         else:
             self.alpha_image = None
         self.alpha_label = alpha_label
         self.alpha_scale = alpha_scale
+
+        if background == 'white':
+            self._back = array([1])
+        else:
+            self._back = array([0])
 
     def get_slice(self, slicer):
         """
@@ -91,7 +101,7 @@ class Layer:
 
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         """
-        return slicer.sample(self.image, self.interp_order, self.scale, self.volume)
+        return slicer.sample(self.img_data, self.image.affine, self.interp_order, self.scale, self.volume)
 
     def get_color(self, slicer):
         """
@@ -105,10 +115,10 @@ class Layer:
 
     def get_mask(self, slicer):
         if self.mask_image:
-            mask_slc = slicer.sample(self.mask_image, 0) > self.mask_threshold
+            mask_slc = slicer.sample(self.mask_image.get_data(), self.mask_image.affine, 0) > self.mask_threshold
         elif self.mask_threshold:
             mask_slc = slicer.sample(
-                self.image, self.interp_order, self.scale, self.volume) > self.mask_threshold
+                self.img_data, self.image.affine, self.interp_order, self.scale, self.volume) > self.mask_threshold
         else:
             return None
         return mask_slc
@@ -139,7 +149,7 @@ class Layer:
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         - axes   -- A matplotlib axes object
         """
-        slc = slice_func.mask(self.get_color(slicer), self.get_mask(slicer))
+        slc = slice_func.mask(self.get_color(slicer), self.get_mask(slicer), back=self._back)
         cax = axes.imshow(slc, origin='lower',
                           extent=slicer.extent, interpolation='nearest')
         axes.axis('off')

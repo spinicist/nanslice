@@ -85,7 +85,7 @@ class Slicer:
             self._tfm = tfm
         return self._voxel_space
 
-    def sample(self, img, order, scale=1.0, volume=0):
+    def sample(self, img_data, affine, order, scale=1.0, volume=0):
         """
         Samples the passed 3D/4D image and returns a 2D slice
 
@@ -97,9 +97,9 @@ class Slicer:
         - volume -- If sampling 4D data, specify the desired volume
 
         """
-        physical = self.get_voxel_coords(img.affine)
+        physical = self.get_voxel_coords(affine)
         # Support timeseries by adding an extra co-ord specifying the volume
-        if len(img.shape) == 4:
+        if len(img_data.shape) == 4:
             vol_index = np.tile(volume, physical.shape[1:3])[np.newaxis, :]
             physical = np.concatenate((physical, vol_index), axis=0)
-        return scale * ndinterp.map_coordinates(img.get_data(), physical, order=order).T
+        return scale * ndinterp.map_coordinates(img_data, physical, order=order).T
