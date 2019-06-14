@@ -60,9 +60,11 @@ def colorbar(axes, cm_name, clims, clabel,
         if orient == 'h':
             axes.set_xticks((np.sum(clims)/2,))
             axes.set_xticklabels((clabel,), color=forecolor)
+            axes.set_yticks(())
         else:
             axes.set_yticks((np.sum(clims)/2,))
             axes.set_yticklabels((clabel,), color=forecolor)
+            axes.set_xticks(())
     axes.tick_params(axis='both', which='both', length=0)
     axes.spines['top'].set_color(forecolor)
     axes.spines['bottom'].set_color(forecolor)
