@@ -55,6 +55,7 @@ def colorbar(axes, cm_name, clims, clabel,
             axes.set_yticks(ticks)
             axes.set_yticklabels(labels, color=forecolor,
                                  rotation='vertical', va='center')
+            axes.yaxis.tick_right()
             axes.set_xticks(())
     else:
         if orient == 'h':
@@ -64,6 +65,7 @@ def colorbar(axes, cm_name, clims, clabel,
         else:
             axes.set_yticks((np.sum(clims)/2,))
             axes.set_yticklabels((clabel,), color=forecolor)
+            axes.yaxis.tick_right()
             axes.set_xticks(())
     axes.tick_params(axis='both', which='both', length=0)
     axes.spines['top'].set_color(forecolor)
@@ -100,7 +102,7 @@ def alphabar(axes, cm_name, clims, clabel,
     """
     steps = 32
     if orient == 'h':
-        ext = (alims[0], alims[1], clims[0], clims[1])
+        ext = (clims[0], clims[1], alims[0], alims[1])
         cdata = np.tile(np.linspace(clims[0], clims[1], steps)[
                         np.newaxis, :], [steps, 1])
         alpha = np.tile(np.linspace(0, 1, steps)[:, np.newaxis], [1, steps])
@@ -125,7 +127,7 @@ def alphabar(axes, cm_name, clims, clabel,
         axes.set_xticks(cticks)
         axes.set_xticklabels(clabels)
         axes.set_yticks(aticks)
-        axes.set_yticklabels(alabels, rotation='vertical')
+        axes.set_yticklabels(alabels, rotation='vertical', va='center')
     else:
         axes.set_xticks(aticks)
         axes.set_xticklabels(alabels)

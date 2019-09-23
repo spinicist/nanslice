@@ -41,6 +41,7 @@ Hanning sampling in the ``matplotlib`` step.
 """
 import argparse
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from .util import add_common_arguments
@@ -49,6 +50,8 @@ from .box import Box
 from .slicer import Slicer, Axis_map
 from .slice_func import scale_clip
 from .layer import Layer, blend_layers
+
+mpl.rc('font', family='Helvetica', size=8)
 
 
 def main(args=None):
@@ -98,9 +101,9 @@ def main(args=None):
 
     if args.overlay:
         layers.append(Layer(args.overlay, scale=args.overlay_scale,
-                            cmap=args.overlay_map, clim=args.overlay_lims,
+                            cmap=args.overlay_map, clim=args.overlay_lim,
                             mask=args.overlay_mask, mask_threshold=args.overlay_mask_thresh,
-                            alpha=args.alpha, alpha_scale=args.overlay_alpha_scale, alpha_lim=args.alpha_lims,
+                            alpha=args.overlay_alpha, alpha_scale=args.overlay_alpha_scale, alpha_lim=args.overlay_alpha_lim,
                             interp_order=args.interp_order))
 
     print('*** Setup')
@@ -173,11 +176,11 @@ def main(args=None):
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
         if args.bar_pos == 'bottom':
-            gs1.update(left=0.01, right=0.99, bottom=(0.4 / (1 + args.slice_rows)),
+            gs1.update(left=0.01, right=0.99, bottom=(0.7 / (1 + args.slice_rows)),
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.08, right=0.92, bottom=(0.2 / (1 + args.slice_rows)),
-                       top=(0.38 / (1 + args.slice_rows)), wspace=0.1, hspace=0.1)
+            gs2.update(left=0.08, right=0.92, bottom=(0.3 / (1 + args.slice_rows)),
+                       top=(0.69 / (1 + args.slice_rows)), wspace=0.1, hspace=0.1)
             orient = 'h'
         else:
             gs1.update(left=0.01, right=0.95, bottom=0.01,
@@ -188,8 +191,8 @@ def main(args=None):
             orient = 'v'
         axes = plt.subplot(gs2[0], facecolor='black')
         if args.overlay_alpha:
-            alphabar(axes, args.overlay_map, args.overlay_lims, args.overlay_label,
-                     args.overlay_alpha_lims, args.overlay_alpha_label, orient=orient)
+            alphabar(axes, args.overlay_map, args.overlay_lim, args.overlay_label,
+                     args.overlay_alpha_lim, args.overlay_alpha_label, orient=orient)
         else:
             if args.base_map:
                 colorbar(axes, layers[0].cmap, layers[0].clim,

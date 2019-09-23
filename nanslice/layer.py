@@ -115,7 +115,8 @@ class Layer:
 
     def get_mask(self, slicer):
         if self.mask_image:
-            mask_slc = slicer.sample(self.mask_image.get_data(), self.mask_image.affine, 0) > self.mask_threshold
+            mask_slc = slicer.sample(self.mask_image.get_data(
+            ), self.mask_image.affine, 0) > self.mask_threshold
         elif self.mask_threshold:
             mask_slc = slicer.sample(
                 self.img_data, self.image.affine, self.interp_order, self.scale, self.volume) > self.mask_threshold
@@ -134,7 +135,7 @@ class Layer:
 
         if self.alpha_image:
             alpha_slice = slicer.sample(
-                self.alpha_image, self.interp_order, self.alpha_scale)
+                self.alpha_image.get_data(), self.alpha_image.affine, self.interp_order, self.alpha_scale)
             alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lim)
             return alpha_slice
         else:
@@ -149,7 +150,8 @@ class Layer:
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         - axes   -- A matplotlib axes object
         """
-        slc = slice_func.mask(self.get_color(slicer), self.get_mask(slicer), back=self._back)
+        slc = slice_func.mask(self.get_color(
+            slicer), self.get_mask(slicer), back=self._back)
         cax = axes.imshow(slc, origin='lower',
                           extent=slicer.extent, interpolation='nearest')
         axes.axis('off')
