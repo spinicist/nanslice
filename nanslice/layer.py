@@ -65,13 +65,13 @@ class Layer:
         if clim:
             self.clim = clim
         else:
-            if len(self.img_data) == 4:
+            if len(self.img_data.shape) == 4:
                 limdata = self.img_data[:, :, :, self.volume].squeeze()
             else:
                 limdata = self.img_data
             if self.mask_image:
                 limdata = ma.masked_where(
-                    self.mask_image.get_data() > 0, self.img_data).compressed()
+                    self.mask_image.get_data() > 0, limdata).compressed()
             self.clim = nanpercentile(limdata, (2, 98))
 
         if check_path(alpha):
