@@ -38,7 +38,7 @@ class Layer:
     """
 
     def __init__(self, image, scale=1.0, volume=0, interp_order=1,
-                 cmap=None, clim=None, label='',
+                 cmap=None, clim=None, climp=None, label='',
                  mask=None, mask_threshold=0,
                  alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label='',
                  background='black'):
@@ -62,6 +62,7 @@ class Layer:
             self.cmap = cmap
         else:
             self.cmap = 'gist_gray'
+
         if clim:
             self.clim = clim
         else:
@@ -71,8 +72,10 @@ class Layer:
                 limdata = self.img_data
             if self.mask_image:
                 limdata = ma.masked_where(
-                    self.mask_image.get_data() > 0, limdata).compressed()
-            self.clim = nanpercentile(limdata, (2, 98))
+                    self.mask_image.get_data() == 0, limdata).compressed()
+            if climp is None:
+                climp = (2, 98)
+            self.clim = nanpercentile(limdata, climp)
 
         if check_path(alpha):
             self.alpha_image = load(str(alpha))

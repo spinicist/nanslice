@@ -91,13 +91,12 @@ def main(args=None):
 
     args = parser.parse_args()
 
-    print('*** Loading files')
-    print('Loading base image: ', args.base_image)
+    print('*** Loading base image: ', args.base_image)
     layers = [Layer(args.base_image, mask=args.mask,
-                    cmap=args.base_map, clim=args.base_lims, scale=args.base_scale,
+                    cmap=args.base_map, clim=args.base_lims, climp=args.base_lims_p, scale=args.base_scale,
                     interp_order=args.interp_order, volume=args.volume), ]
     if args.base_lims is None:
-        print('Base limits:', layers[0].clim)
+        print('*** Base limits:', layers[0].clim)
 
     if args.overlay:
         layers.append(Layer(args.overlay, scale=args.overlay_scale,
@@ -106,9 +105,7 @@ def main(args=None):
                             alpha=args.overlay_alpha, alpha_scale=args.overlay_alpha_scale, alpha_lim=args.overlay_alpha_lim,
                             interp_order=args.interp_order))
 
-    print('*** Setup')
     bbox = layers[0].bbox
-    print(layers[0].bbox)
     args.slice_axis = Axis_map[args.slice_axis]
     if args.three_axis:
         args.slice_rows = 1
@@ -137,7 +134,7 @@ def main(args=None):
         f = plt.figure(facecolor='black', figsize=args.figsize)
     else:
         f = plt.figure(facecolor='black', figsize=(
-            3*args.slice_cols, 3*args.slice_rows + 1))
+            3*args.slice_cols, 2*args.slice_rows + 1))
 
     print('*** Slicing')
     for s in range(0, slice_total):
@@ -176,17 +173,17 @@ def main(args=None):
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
         if args.bar_pos == 'bottom':
-            gs1.update(left=0.01, right=0.99, bottom=(0.7 / (1 + args.slice_rows)),
+            gs1.update(left=0.01, right=0.99, bottom=0.101,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.08, right=0.92, bottom=(0.3 / (1 + args.slice_rows)),
-                       top=(0.69 / (1 + args.slice_rows)), wspace=0.1, hspace=0.1)
+            gs2.update(left=0.08, right=0.92, bottom=0.05,
+                       top=0.1, wspace=0.1, hspace=0.1)
             orient = 'h'
         else:
             gs1.update(left=0.01, right=0.95, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.97, right=0.99, bottom=0.05,
+            gs2.update(left=0.951, right=0.98, bottom=0.05,
                        top=0.95, wspace=0.01, hspace=0.01)
             orient = 'v'
         axes = plt.subplot(gs2[0], facecolor='black')

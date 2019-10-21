@@ -7,12 +7,14 @@ from pathlib import Path
 import numpy as np
 from nibabel import load
 
+
 def check_path(maybe_path):
     """Helper function to check if an object is path-like"""
     if isinstance(maybe_path, Path) or isinstance(maybe_path, str):
         return True
     else:
         return False
+
 
 def ensure_image(maybe_path):
     """Helper function that lets either images or paths be passed around"""
@@ -21,6 +23,7 @@ def ensure_image(maybe_path):
     else:
         return maybe_path
 
+
 def center_of_mass(img):
     """Calculates the center of mass of the image"""
     idx0 = np.argmax(np.sum(img.get_data(), axis=(1, 2)))
@@ -28,6 +31,7 @@ def center_of_mass(img):
     idx2 = np.argmax(np.sum(img.get_data(), axis=(0, 1)))
     phys = np.dot(img.affine, np.array([idx0, idx1, idx2, 1]).T)
     return phys
+
 
 def add_common_arguments(parser):
     """Defines a set of common arguments that are shared between nanviewer and nanslicer"""
@@ -38,6 +42,8 @@ def add_common_arguments(parser):
                         help='Base image colormap to use from Matplotlib, default = gist_gray')
     parser.add_argument('--base_lims', type=float, nargs=2, default=None,
                         help='Specify base image window')
+    parser.add_argument('--base_lims_p', type=float, nargs=2, default=None,
+                        help='Specify base image window in %')
     parser.add_argument('--base_scale', type=float, default=1.0,
                         help='Scaling for base image before mapping, default=1.0')
     parser.add_argument('--base_label', type=str, default='',
