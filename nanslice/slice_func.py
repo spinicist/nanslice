@@ -6,8 +6,29 @@ Functions for manipulating 'slices'/images (or (X, Y, 3) arrays)
 
 import numpy as np
 import matplotlib as mpl
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 import scipy.ndimage.filters as filters
 import colorcet as cc
+
+
+class MidNorm(mpl.colors.Normalize):
+    def __init__(self, vmin=None, vmax=None, clip=False):
+        if vmin < 0:
+            self.midpoint = 0
+        else:
+            self.midpoint = None
+        mpl.colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        result, is_scalar = self.process_value(value)
+        self.autoscale_None(result)
+
+        if self.midpoint:
+            x, y = [-self.vmax, self.midpoint, self.vmax], [0, 0.5, 1]
+            return np.ma.masked_array(np.interp(value, x, y))
+        else:
+            return mpl.colors.Normalize.__call__(value, clip)
 
 
 def colorize(data, cmap, clims=None):
@@ -22,14 +43,23 @@ def colorize(data, cmap, clims=None):
     """
     if clims is None:
         norm = None
+    elif clims[0] < 0:
+        norm = colors.TwoSlopeNorm(vmin=clims[0], vcenter=0, vmax=clims[1])
     else:
-        norm = mpl.colors.Normalize(vmin=clims[0], vmax=clims[1])
+        norm = colors.Normalize(vmin=clims[0], vmax=clims[1])
+
     if cmap == 'phase':
         cmap = cc.m_colorwheel
+    elif cmap == 'twoway':
+        c_neg = cm.get_cmap('cet_CET_L15')
+        c_plus = cm.get_cmap('cet_CET_L3')
+        cmap = colors.LinearSegmentedColormap.from_list(
+            'twoway', np.vstack((c_neg(np.linspace(1, 0, 128)),
+                                 c_plus(np.linspace(0, 1, 128)))))
     else:
         cmap = mpl.cm.get_cmap(cmap)
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-    return smap.to_rgba(data, alpha=1, bytes=False)[:, :, 0:3]
+    return smap.to_rgba(data, alpha=1, bytes=False)[:, :, 0: 3]
 
 
 def scale_clip(data, lims):

@@ -46,10 +46,11 @@ def colorbar(axes, cm_name, clims, clabel,
         forecolor = 'k'
     if show_ticks:
         ticks = (clims[0], np.sum(clims)/2, clims[1])
-        labels = (tick_fmt.format(clims[0]), clabel, tick_fmt.format(clims[1]))
+        labels = (tick_fmt.format(clims[0]),
+                  clabel, tick_fmt.format(clims[1]))
         if orient == 'h':
             axes.set_xticks(ticks)
-            axes.set_xticklabels(labels, color=forecolor)
+            axes.set_xticklabels(labels, color=forecolor, fontsize=24)
             axes.set_yticks(())
         else:
             axes.set_yticks(ticks)

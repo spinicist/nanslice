@@ -51,8 +51,6 @@ from .slicer import Slicer, Axis_map
 from .slice_func import scale_clip
 from .layer import Layer, blend_layers
 
-mpl.rc('font', family='Helvetica', size=8)
-
 
 def main(args=None):
     """
@@ -88,8 +86,17 @@ def main(args=None):
                         help='DPI for output figure')
     parser.add_argument('--transpose', action='store_true',
                         help='Swap rows and columns')
-
+    parser.add_argument('--font', type=str, default='Helvetica',
+                        help='Font name, default Helvetica')
+    parser.add_argument('--fontsize', type=int, default=8,
+                        help='Font size, default 8')
+    parser.add_argument('--title', type=str, default=None, help='Add a title')
     args = parser.parse_args()
+
+    mpl.rc('font', family=args.font, size=args.fontsize)
+
+    if args.list_cmaps:
+        print(plt.colormaps())
 
     print('*** Loading base image: ', args.base_image)
     layers = [Layer(args.base_image, mask=args.mask,
@@ -130,11 +137,9 @@ def main(args=None):
         origin = 'lower'
 
     gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
-    if args.figsize:
-        f = plt.figure(facecolor='black', figsize=args.figsize)
-    else:
-        f = plt.figure(facecolor='black', figsize=(
-            3*args.slice_cols, 2*args.slice_rows + 1))
+    if not args.figsize:
+        args.figsize = (3*args.slices_cols, 2*args.slice_rows + 1)
+    f = plt.figure(facecolor='black', figsize=args.figsize)
 
     print('*** Slicing')
     for s in range(0, slice_total):
@@ -172,19 +177,22 @@ def main(args=None):
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
+        # Need about 1/4 inch space
         if args.bar_pos == 'bottom':
-            gs1.update(left=0.01, right=0.99, bottom=0.101,
+            cbarh = (1/4) / args.figsize[1]
+            gs1.update(left=0.01, right=0.99, bottom=cbarh+0.001,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.08, right=0.92, bottom=0.05,
-                       top=0.1, wspace=0.1, hspace=0.1)
+            gs2.update(left=0.08, right=0.92, bottom=cbarh/2,
+                       top=cbarh, wspace=0.1, hspace=0.1)
             orient = 'h'
         else:
-            gs1.update(left=0.01, right=0.95, bottom=0.01,
+            cbarw = (1/4) / args.figsize[0]
+            gs1.update(left=0.01, right=1 - cbarw, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.951, right=0.98, bottom=0.05,
-                       top=0.95, wspace=0.01, hspace=0.01)
+            gs2.update(left=1 - cbarw + 0.001, right=1 - cbarw/1.5, bottom=0.08,
+                       top=0.92, wspace=0.01, hspace=0.01)
             orient = 'v'
         axes = plt.subplot(gs2[0], facecolor='black')
         if args.overlay_alpha:
@@ -200,6 +208,10 @@ def main(args=None):
     else:
         gs1.update(left=0.01, right=0.99, bottom=0.01,
                    top=0.99, wspace=0.01, hspace=0.01)
+
+    if args.title:
+        f.axes[-1].text(0.01, 0.99, args.title, color='w', size=2*args.fontsize, verticalalignment='top',
+                        transform=f.transFigure)
     print('*** Saving')
     print('Writing file: ', args.output, 'at', args.dpi, ' DPI')
     f.savefig(args.output, facecolor=f.get_facecolor(),
