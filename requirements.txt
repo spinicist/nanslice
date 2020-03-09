@@ -1,5 +1,0 @@
-matplotlib==2.0.0
-nibabel==2.0.0
-numpy==1.14.2
-numpydoc==0.8.0
-scipy==1.1.0

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 nanslicer.py
 
@@ -94,9 +93,6 @@ def main(args=None):
     args = parser.parse_args()
 
     mpl.rc('font', family=args.font, size=args.fontsize)
-
-    if args.list_cmaps:
-        print(plt.colormaps())
 
     print('*** Loading base image: ', args.base_image)
     layers = [Layer(args.base_image, mask=args.mask,
@@ -210,7 +206,7 @@ def main(args=None):
                    top=0.99, wspace=0.01, hspace=0.01)
 
     if args.title:
-        f.axes[-1].text(0.01, 0.99, args.title, color='w', size=2*args.fontsize, verticalalignment='top',
+        f.axes[-1].text(0.01, 0.99, args.title, color='w', size=args.fontsize, verticalalignment='top',
                         transform=f.transFigure)
     print('*** Saving')
     print('Writing file: ', args.output, 'at', args.dpi, ' DPI')
