@@ -53,7 +53,7 @@ class Slicer:
         dir_rt[ind_1] = bbox.diag[ind_1]
         dir_up[ind_2] = bbox.diag[ind_2]
         aspect = np.linalg.norm(dir_up) / np.linalg.norm(dir_rt)
-        samples_up = np.round(aspect * samples)
+        samples_up = int(round(aspect * samples))
         self._world_space = (start[:, None, None] +
                              dir_rt[:, None, None] * np.linspace(0, 1, samples)[None, :, None] +
                              dir_up[:, None, None] * np.linspace(0, 1, samples_up)[None, None, :])
