@@ -50,6 +50,7 @@ class Layer:
 
         self.img_data = self.image.get_data()
         self.img_data[~isfinite(self.img_data)] = 0
+        self.matrix = self.img_data.shape
 
         self.mask_image = ensure_image(mask)
         self.mask_threshold = mask_threshold
@@ -63,7 +64,7 @@ class Layer:
         else:
             self.cmap = 'gist_gray'
 
-        if clim:
+        if clim is not None:
             self.clim = clim
         else:
             if len(self.img_data.shape) == 4:

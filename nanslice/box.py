@@ -5,10 +5,11 @@ Contains a simple bounding-box class"""
 
 import numpy as np
 
+
 class Box:
     """
     A simple bounding-box class
-    
+
     Constructor parameters:
 
     - center -- The center of the box (x,y,z) in world-space co-ordinates
@@ -17,6 +18,7 @@ class Box:
 
     Either corners or both center and size must be specified
     """
+
     def __init__(self, center=None, size=None, corners=None):
         if center is not None and size is not None:
             self._center = center
@@ -36,26 +38,26 @@ class Box:
     def fromImage(cls, img):
         """
         Creates a bounding box from the corners defined by an image
-        
+
         Parameters:
 
         - img -- An nibabel image
         """
         img_shape = img.get_data().shape
         corners = np.array([[0, 0, 0, 1.],
-                            [img_shape[0], img_shape[1], img_shape[2], 1.]])
+                            [img_shape[0] - 1, img_shape[1] - 1, img_shape[2] - 1, 1.]])
         corners = np.dot(img.get_affine(), corners.T)
         corner1 = np.min(corners[0:3, :], axis=1)
         corner2 = np.max(corners[0:3, :], axis=1)
         return cls(corners=(corner1, corner2))
-    
+
     @classmethod
     def fromMask(cls, img, padding=0):
         """
         Creates a bounding box that encloses all non-zero voxels in a volume
-        
+
         Parameters:
-        
+
         - img -- The volume to create the bounding-box from
         - padding -- Number of extra voxels to pad the resulting box by
         """
@@ -97,5 +99,6 @@ class Box:
 
     def slice_positions(self, num_slices, start=0, end=1):
         """Returns an array of slice positions along the specified axis"""
-        slice_pos = self.start + self.diag * np.linspace(start, end, num_slices)[:, np.newaxis]
+        slice_pos = self.start + self.diag * \
+            np.linspace(start, end, num_slices)[:, np.newaxis]
         return slice_pos
