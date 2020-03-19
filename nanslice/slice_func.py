@@ -31,7 +31,7 @@ class MidNorm(mpl.colors.Normalize):
             return mpl.colors.Normalize.__call__(value, clip)
 
 
-def colorize(data, cmap, clims=None):
+def colorize(data, cmap, clims):
     """
     Apply a colormap to grayscale data. Takes an (X, Y) array and returns an (X, Y, 3) array
 
@@ -41,23 +41,19 @@ def colorize(data, cmap, clims=None):
     - cmap -- Any valid matplotlib colormap or colormap name
     - clims -- The limits for the colormap
     """
-    if clims is None:
-        norm = None
-    elif clims[0] < 0:
-        norm = colors.TwoSlopeNorm(vmin=clims[0], vcenter=0, vmax=clims[1])
-    else:
-        norm = colors.Normalize(vmin=clims[0], vmax=clims[1])
-
-    if cmap == 'phase':
-        cmap = cc.m_colorwheel
-    elif cmap == 'twoway':
+    if cmap == 'twoway':
         c_neg = cm.get_cmap('cet_CET_L15')
         c_plus = cm.get_cmap('cet_CET_L3')
         cmap = colors.LinearSegmentedColormap.from_list(
             'twoway', np.vstack((c_neg(np.linspace(1, 0, 128)),
                                  c_plus(np.linspace(0, 1, 128)))))
+        norm = colors.TwoSlopeNorm(vmin=clims[0], vcenter=0, vmax=clims[1])
+    elif cmap == 'phase':
+        cmap = cc.m_colorwheel
+        norm = colors.Normalize(vmin=clims[0], vmax=clims[1])
     else:
         cmap = mpl.cm.get_cmap(cmap)
+        norm = colors.Normalize(vmin=clims[0], vmax=clims[1])
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     return smap.to_rgba(data, alpha=1, bytes=False)[:, :, 0: 3]
 

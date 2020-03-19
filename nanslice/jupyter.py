@@ -213,25 +213,23 @@ def timeseries(image, axis='z', orient='clin', clim=None):
 
 
 def compare(image1, image2, axis='z', orient='clin', samples=128,
-            cbar=None, title=None):
-    layer1 = Layer(image1, interp_order=0)
+            clim=None, title=None):
+    layer1 = Layer(image1, interp_order=0, clim=clim)
     layer2 = Layer(image2, interp_order=0, clim=layer1.clim)
     plt.ioff()
     bbox = layer1.bbox
     gs1 = gs.GridSpec(1, 2)
     fig = plt.figure(facecolor='black', figsize=(6, 3))
-    if cbar:
-        if isinstance(cbar, bool):
-            cbar = 0
-        gs1.update(left=0.01, right=0.88, bottom=0.01,
-                   top=0.99, wspace=0.01, hspace=0.01)
-        gs2 = gs.GridSpec(1, 1)
-        gs2.update(left=0.92, right=0.98, bottom=0.1,
-                   top=0.9, wspace=0.1, hspace=0.1)
-        cax = fig.add_subplot(gs2[0], facecolor='white')
-        colorbar(cax,
-                 layer1.cmap, layer1.clim, layer1.label,
-                 black_backg=True, orient='v')
+
+    gs1.update(left=0.01, right=0.88, bottom=0.01,
+               top=0.99, wspace=0.01, hspace=0.01)
+    gs2 = gs.GridSpec(1, 1)
+    gs2.update(left=0.92, right=0.98, bottom=0.1,
+               top=0.9, wspace=0.1, hspace=0.1)
+    cax = fig.add_subplot(gs2[0], facecolor='white')
+    colorbar(cax,
+             layer1.cmap, layer1.clim, layer1.label,
+             black_backg=True, orient='v')
 
     ax_ind = Axis_map[axis]
     slcr = Slicer(bbox, bbox.center[ax_ind],
