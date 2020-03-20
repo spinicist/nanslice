@@ -134,7 +134,7 @@ def main(args=None):
 
     gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
     if not args.figsize:
-        args.figsize = (3*args.slices_cols, 2*args.slice_rows + 1)
+        args.figsize = (3*args.slice_cols, 2*args.slice_rows + 1)
     f = plt.figure(facecolor='black', figsize=args.figsize)
 
     print('*** Slicing')
