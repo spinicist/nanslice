@@ -95,7 +95,7 @@ def main(args=None):
     mpl.rc('font', family=args.font, size=args.fontsize)
 
     print('*** Loading base image: ', args.base_image)
-    layers = [Layer(args.base_image, mask=args.mask,
+    layers = [Layer(args.base_image, mask=args.mask, crop_center=args.crop_center, crop_size=args.crop_size,
                     cmap=args.base_map, clim=args.base_lims, climp=args.base_lims_p, scale=args.base_scale,
                     interp_order=args.interp_order, volume=args.volume), ]
     if args.base_lims is None:

@@ -190,7 +190,7 @@ def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], abso
     return fig
 
 
-def timeseries(image, axis='z', orient='clin', clim=None):
+def timeseries(image, axis='z', orient='clin', clim=None, title=None):
     series = Layer(image, clim=clim)
     plt.ioff()
     bbox = series.bbox
@@ -208,6 +208,8 @@ def timeseries(image, axis='z', orient='clin', clim=None):
         iax.imshow(sl, origin='lower', extent=slcr.extent,
                    interpolation='nearest')
         iax.axis('off')
+    if title:
+        plt.suptitle(title, color='w')
     plt.close()
     return fig
 

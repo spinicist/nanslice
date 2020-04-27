@@ -29,6 +29,8 @@ class Layer:
     - label -- The label for this layer (used for colorbars)
     - mask           -- A mask image to use with this layer
     - mask_threshold -- Apply a threshold (lower) to the mask
+    - crop_center -- Center of box to crop to
+    - crop_size   -- Size of crop box
     - alpha       -- An alpha (transparency) image to use with this layer
     - alpha_lim  -- Specify the limits/window for the alpha image
     - alpha_scale -- Scaling factor for the alpha image
@@ -39,7 +41,7 @@ class Layer:
 
     def __init__(self, image, scale=1.0, volume=0, interp_order=1,
                  cmap=None, clim=None, climp=None, label='',
-                 mask=None, mask_threshold=0,
+                 mask=None, mask_threshold=0, crop_center=None, crop_size=None,
                  alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label='',
                  background='black'):
         self.image = ensure_image(image)
@@ -54,7 +56,9 @@ class Layer:
 
         self.mask_image = ensure_image(mask)
         self.mask_threshold = mask_threshold
-        if self.mask_image:
+        if crop_center and crop_size:
+            self.bbox = Box(center=crop_center, size=crop_size)
+        elif self.mask_image:
             self.bbox = Box.fromMask(self.mask_image)
         else:
             self.bbox = Box.fromImage(self.image)

@@ -38,6 +38,10 @@ def add_common_arguments(parser):
     parser.add_argument('base_image', help='Base (structural image)', type=str)
     parser.add_argument('--mask', type=str,
                         help='Mask image')
+    parser.add_argument('--crop_center', type=float, nargs=3,
+                        help='Center of crop box (X Y Z)')
+    parser.add_argument('--crop_size', type=float, nargs=3,
+                        help='Size of crop box (X Y Z)')
     parser.add_argument('--base_map', type=str, default='gist_gray',
                         help='Base image colormap to use from Matplotlib, default = gist_gray')
     parser.add_argument('--base_lims', type=float, nargs=2, default=None,

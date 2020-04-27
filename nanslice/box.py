@@ -21,9 +21,10 @@ class Box:
 
     def __init__(self, center=None, size=None, corners=None):
         if center is not None and size is not None:
-            self._center = center
-            self._diag = size
-            self._c = (center - size/2, center + size/2)
+            self._center = np.array(center)
+            self._diag = np.array(size)
+            self._c = (self._center - self._diag/2,
+                       self._center + self._diag/2)
         elif corners is not None:
             self._c = corners
             self._diag = self._c[1] - self._c[0]
