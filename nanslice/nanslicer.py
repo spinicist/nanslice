@@ -69,14 +69,16 @@ def main(args=None):
                         help='Number of columns of slices')
     parser.add_argument('--slice_axis', type=str, default='z',
                         help='Axis to slice along (x/y/z)')
+    parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
+                        help='Slice between these limits along the axis, default=0.1 0.9')
+    parser.add_argument('--slices', type=float, nargs='+', help='Slice at specified positions')
     parser.add_argument(
         '--three_axis', help='Make a 3 axis (x,y,z) plot', action='store_true')
     parser.add_argument('--timeseries', action='store_true',
                         help='Plot the same slice through each volume in a time-series')
     parser.add_argument('--volume', type=int, default=0,
                         help='Plot one volume from a timeseries')
-    parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
-                        help='Slice between these limits along the axis, default=0.1 0.9')
+
     parser.add_argument('--bar_pos', type=str, default='bottom',
                         help='Position of color-bar (bottom / right)')
     parser.add_argument('--figsize', type=float, nargs=2,
@@ -119,6 +121,13 @@ def main(args=None):
     elif args.timeseries:
         slice_pos = bbox.center[args.slice_axis]
         slice_total = layers[0].image.shape[3]
+    elif args.slices:
+        slice_total = args.slice_rows*args.slice_cols
+        if slice_total != len(args.slices):
+            print('Number of slices and rows*cols does not match')
+            exit()
+        slice_pos = np.array(args.slices)
+        args.slice_axis = [args.slice_axis] * slice_total
     else:
         slice_total = args.slice_rows*args.slice_cols
         slice_pos = bbox.start[args.slice_axis] + bbox.diag[args.slice_axis] * \
@@ -134,7 +143,7 @@ def main(args=None):
 
     gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
     if not args.figsize:
-        args.figsize = (3*args.slice_cols, 2*args.slice_rows + 1)
+        args.figsize = (3*args.slice_cols, 3*args.slice_rows)
     f = plt.figure(facecolor='black', figsize=args.figsize)
 
     print('*** Slicing')
@@ -173,23 +182,25 @@ def main(args=None):
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
-        # Need about 1/4 inch space
-        if args.bar_pos == 'bottom':
-            cbarh = (1/4) / args.figsize[1]
-            gs1.update(left=0.01, right=0.99, bottom=cbarh+0.001,
+        if args.bar_pos == 'south':
+            cbar_bottom = 0.3 * (args.fontsize / 12) / args.figsize[1]
+            cbar_top = cbar_bottom + 0.1 / args.figsize[1]
+            gs1.update(left=0.01, right=0.99, bottom=cbar_top+0.001,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.08, right=0.92, bottom=cbarh/2,
-                       top=cbarh, wspace=0.1, hspace=0.1)
+            gs2.update(left=0.05, right=0.95, bottom=cbar_bottom,
+                       top=cbar_top, wspace=0.1, hspace=0.1)
             orient = 'h'
-        else:
-            cbarw = (1/4) / args.figsize[0]
+        elif args.bar_pos == 'east':
+            cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
             gs1.update(left=0.01, right=1 - cbarw, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
             gs2.update(left=1 - cbarw + 0.001, right=1 - cbarw/1.5, bottom=0.08,
                        top=0.92, wspace=0.01, hspace=0.01)
             orient = 'v'
+        else:
+            print('Unsupported bar position', args.bar_pos)
         axes = plt.subplot(gs2[0], facecolor='black')
         if args.overlay_alpha:
             alphabar(axes, args.overlay_map, args.overlay_lim, args.overlay_label,

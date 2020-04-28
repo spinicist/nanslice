@@ -13,7 +13,7 @@ from . import slice_func
 
 
 def colorbar(axes, cm_name, clims, clabel,
-             black_backg=True, show_ticks=True, tick_fmt='{:.3g}', orient='h'):
+             black_backg=True, show_ticks=True, tick_fmt='{:.4g}', orient='h'):
     """
     Plots a colorbar in the specified axes
 
@@ -50,7 +50,7 @@ def colorbar(axes, cm_name, clims, clabel,
                   clabel, tick_fmt.format(clims[1]))
         if orient == 'h':
             axes.set_xticks(ticks)
-            axes.set_xticklabels(labels, color=forecolor, fontsize=24)
+            axes.set_xticklabels(labels, color=forecolor)
             axes.set_yticks(())
         else:
             axes.set_yticks(ticks)
