@@ -47,7 +47,7 @@ def add_common_arguments(parser):
     parser.add_argument('--base_lims', type=float, nargs=2, default=None,
                         help='Specify base image window')
     parser.add_argument('--base_lims_p', type=float, nargs=2, default=None,
-                        help='Specify base image window in %')
+                        help='Specify base image window in percent')
     parser.add_argument('--base_scale', type=float, default=1.0,
                         help='Scaling for base image before mapping, default=1.0')
     parser.add_argument('--base_label', type=str, default='',
