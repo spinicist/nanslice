@@ -79,8 +79,8 @@ def main(args=None):
     parser.add_argument('--volume', type=int, default=0,
                         help='Plot one volume from a timeseries')
 
-    parser.add_argument('--bar_pos', type=str, default='bottom',
-                        help='Position of color-bar (bottom / right)')
+    parser.add_argument('--bar_pos', type=str, default='south',
+                        help='Position of color-bar (south / east)')
     parser.add_argument('--figsize', type=float, nargs=2,
                         default=None, help='Figure size (width, height) in inches')
     parser.add_argument('--dpi', type=int, default=150,
