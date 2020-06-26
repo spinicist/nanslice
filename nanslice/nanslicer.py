@@ -71,7 +71,8 @@ def main(args=None):
                         help='Axis to slice along (x/y/z)')
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.1, 0.9),
                         help='Slice between these limits along the axis, default=0.1 0.9')
-    parser.add_argument('--slices', type=float, nargs='+', help='Slice at specified positions')
+    parser.add_argument('--slices', type=float, nargs='+',
+                        help='Slice at specified positions')
     parser.add_argument(
         '--three_axis', help='Make a 3 axis (x,y,z) plot', action='store_true')
     parser.add_argument('--timeseries', action='store_true',
@@ -144,7 +145,7 @@ def main(args=None):
     gs1 = gridspec.GridSpec(args.slice_rows, args.slice_cols)
     if not args.figsize:
         args.figsize = (3*args.slice_cols, 3*args.slice_rows)
-    f = plt.figure(facecolor='black', figsize=args.figsize)
+    figure = plt.figure(facecolor='black', figsize=args.figsize)
 
     print('*** Slicing')
     for s in range(0, slice_total):
@@ -182,7 +183,7 @@ def main(args=None):
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
-        if args.bar_pos == 'south':
+        if args.bar_pos.lower() == 'south':
             cbar_bottom = 0.3 * (args.fontsize / 12) / args.figsize[1]
             cbar_top = cbar_bottom + 0.1 / args.figsize[1]
             gs1.update(left=0.01, right=0.99, bottom=cbar_top+0.001,
@@ -190,40 +191,49 @@ def main(args=None):
             gs2 = gridspec.GridSpec(1, 1)
             gs2.update(left=0.05, right=0.95, bottom=cbar_bottom,
                        top=cbar_top, wspace=0.1, hspace=0.1)
-            orient = 'h'
-        elif args.bar_pos == 'east':
+            c_orient = 'h'
+            c_axes = plt.subplot(gs2[0], facecolor='black')
+        elif args.bar_pos.lower() == 'south_out':
+            gs1.update(left=0.01, right=0.99, bottom=0.01,
+                       top=0.99, wspace=0.01, hspace=0.01)
+            c_orient = 'h'
+            c_axes = figure.add_subplot(3, 3, 8)
+            c_axes.set_position([0.1, 0.1, 0.8, 0.05])
+            print('Rect: ', c_axes.get_position())
+        elif args.bar_pos.lower() == 'east':
             cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
             gs1.update(left=0.01, right=1 - cbarw, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
             gs2.update(left=1 - cbarw + 0.001, right=1 - cbarw/1.5, bottom=0.08,
                        top=0.92, wspace=0.01, hspace=0.01)
-            orient = 'v'
+            c_orient = 'v'
+            c_axes = plt.subplot(gs2[0], facecolor='black')
         else:
-            print('Unsupported bar position', args.bar_pos)
-        axes = plt.subplot(gs2[0], facecolor='black')
+            raise ValueError('Unsupported bar position: ' + args.bar_pos)
+
         if args.overlay_alpha:
-            alphabar(axes, args.overlay_map, args.overlay_lim, args.overlay_label,
-                     args.overlay_alpha_lim, args.overlay_alpha_label, orient=orient)
+            alphabar(c_axes, args.overlay_map, args.overlay_lim, args.overlay_label,
+                     args.overlay_alpha_lim, args.overlay_alpha_label, orient=c_orient)
         else:
             if args.base_map:
-                colorbar(axes, layers[0].cmap, layers[0].clim,
-                         args.base_label, orient=orient)
+                colorbar(c_axes, layers[0].cmap, layers[0].clim,
+                         args.base_label, orient=c_orient)
             else:
-                colorbar(axes, layers[1].cmap, layers[1].clim,
-                         args.overlay_label, orient=orient)
+                colorbar(c_axes, layers[1].cmap, layers[1].clim,
+                         args.overlay_label, orient=c_orient)
     else:
         gs1.update(left=0.01, right=0.99, bottom=0.01,
                    top=0.99, wspace=0.01, hspace=0.01)
 
     if args.title:
-        f.axes[-1].text(0.01, 0.99, args.title, color='w', size=args.fontsize, verticalalignment='top',
-                        transform=f.transFigure)
+        figure.axes[-1].text(0.01, 0.99, args.title, color='w', size=args.fontsize, verticalalignment='top',
+                             transform=figure.transFigure)
     print('*** Saving')
     print('Writing file: ', args.output, 'at', args.dpi, ' DPI')
-    f.savefig(args.output, facecolor=f.get_facecolor(),
-              edgecolor='none', dpi=args.dpi)
-    plt.close(f)
+    figure.savefig(args.output, facecolor=figure.get_facecolor(),
+                   edgecolor='none', dpi=args.dpi)
+    plt.close(figure)
 
 
 if __name__ == "__main__":
