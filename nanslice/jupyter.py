@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
 import ipywidgets as ipy
+import nibabel as nib
 from . import util
 from .slicer import Slicer, Axis_map
 from .layer import Layer, blend_layers
@@ -215,22 +216,35 @@ def timeseries(image, axis='z', orient='clin', clim=None, title=None):
 
 
 def compare(image1, image2, axis='z', orient='clin', samples=128,
-            clim=None, title=None):
-    layer1 = Layer(image1, interp_order=0, clim=clim)
-    layer2 = Layer(image2, interp_order=0, clim=layer1.clim)
+            clim=None, title=None, mask=None):
+    layer1 = Layer(image1, interp_order=0, clim=clim, mask=mask)
+    layer2 = Layer(image2, interp_order=0, clim=layer1.clim, mask=mask)
+    diff_data = layer1.image.get_data() - layer2.image.get_data()
+    diff_image = nib.nifti1.Nifti1Image(
+        diff_data, affine=layer1.image.affine)
+    diff_layer = Layer(diff_image, interp_order=0, mask=mask,)
     plt.ioff()
     bbox = layer1.bbox
     gs1 = gs.GridSpec(1, 2)
-    fig = plt.figure(facecolor='black', figsize=(6, 3))
+    fig = plt.figure(facecolor='black', figsize=(9, 3))
 
-    gs1.update(left=0.01, right=0.88, bottom=0.01,
+    gs1.update(left=0.01, right=0.62, bottom=0.01,
                top=0.99, wspace=0.01, hspace=0.01)
     gs2 = gs.GridSpec(1, 1)
-    gs2.update(left=0.92, right=0.98, bottom=0.1,
+    gs2.update(left=0.63, right=0.65, bottom=0.1,
+               top=0.9, wspace=0.1, hspace=0.1)
+    gs3 = gs.GridSpec(1, 1)
+    gs3.update(left=0.66, right=0.97, bottom=0.1,
+               top=0.9, wspace=0.1, hspace=0.1)
+    gs4 = gs.GridSpec(1, 1)
+    gs4.update(left=0.98, right=0.99, bottom=0.1,
                top=0.9, wspace=0.1, hspace=0.1)
     cax = fig.add_subplot(gs2[0], facecolor='white')
     colorbar(cax,
              layer1.cmap, layer1.clim, layer1.label,
+             black_backg=True, orient='v')
+    diff_cax = fig.add_subplot(gs4[0], facecolor='white')
+    colorbar(diff_cax, diff_layer.cmap, diff_layer.clim, diff_layer.label,
              black_backg=True, orient='v')
 
     ax_ind = Axis_map[axis]
@@ -238,6 +252,7 @@ def compare(image1, image2, axis='z', orient='clin', samples=128,
                   axis, samples=layer1.matrix[ax_ind], orient=orient)
     slice1 = layer1.get_color(slcr)
     slice2 = layer2.get_color(slcr)
+    slice3 = diff_layer.get_color(slcr)
     iax = fig.add_subplot(gs1[0], facecolor='black')
     iax.imshow(slice1, origin='lower', extent=slcr.extent,
                interpolation='nearest')
@@ -246,6 +261,9 @@ def compare(image1, image2, axis='z', orient='clin', samples=128,
     iax.imshow(slice2, origin='lower', extent=slcr.extent,
                interpolation='nearest')
     iax.axis('off')
+    iax = fig.add_subplot(gs3[0], facecolor='black')
+    iax.imshow(slice3, origin='lower', extent=slcr.extent,
+               interpolation='nearest')
     if title:
         fig.suptitle(title, color='white')
     plt.close()

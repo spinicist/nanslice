@@ -63,11 +63,6 @@ class Layer:
         else:
             self.bbox = Box.fromImage(self.image)
 
-        if cmap:
-            self.cmap = cmap
-        else:
-            self.cmap = 'gist_gray'
-
         if clim is not None:
             self.clim = clim
         else:
@@ -81,6 +76,13 @@ class Layer:
             if climp is None:
                 climp = (2, 98)
             self.clim = nanpercentile(limdata, climp)
+
+        if cmap:
+            self.cmap = cmap
+        elif self.clim[0] < 0 and self.clim[1] > 0:
+            self.cmap = 'twoway'
+        else:
+            self.cmap = 'gist_gray'
 
         if check_path(alpha):
             self.alpha_image = load(str(alpha))
