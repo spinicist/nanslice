@@ -216,13 +216,19 @@ def timeseries(image, axis='z', orient='clin', clim=None, title=None):
 
 
 def compare(image1, image2, axis='z', orient='clin', samples=128,
-            clim=None, title=None, mask=None):
+            clim=None, title=None, mask=None, diff_clim=None):
     layer1 = Layer(image1, interp_order=0, clim=clim, mask=mask)
     layer2 = Layer(image2, interp_order=0, clim=layer1.clim, mask=mask)
-    diff_data = layer1.image.get_data() - layer2.image.get_data()
+    diff_data = 100 * (layer2.image.get_data() - layer1.image.get_data()
+                       ) / layer1.image.get_data()
+    if diff_clim is None:
+        diff_p = np.nanpercentile(diff_data, (2, 98))
+        diff_m = np.max(np.abs(diff_p))
+        diff_clim = (-diff_m, diff_m)
     diff_image = nib.nifti1.Nifti1Image(
         diff_data, affine=layer1.image.affine)
-    diff_layer = Layer(diff_image, interp_order=0, mask=mask,)
+    diff_layer = Layer(diff_image, label='Diff %',
+                       interp_order=0, mask=mask, clim=diff_clim)
     plt.ioff()
     bbox = layer1.bbox
     gs1 = gs.GridSpec(1, 2)
