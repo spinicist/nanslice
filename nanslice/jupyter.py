@@ -225,6 +225,7 @@ def compare(image1, image2, axis='z', orient='clin', samples=128, component=None
                    mask=mask, component=component)
     diff_data = 100 * (layer2.image.get_data() - layer1.image.get_data()
                        ) / layer1.image.get_data()
+    diff_data[~np.isfinite(diff_data)] = 0
     if diff_clim is None:
         diff_p = np.nanpercentile(diff_data, (2, 98))
         diff_m = np.max(np.abs(diff_p))
