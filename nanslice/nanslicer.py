@@ -81,7 +81,7 @@ def main(args=None):
                         help='Plot one volume from a timeseries')
 
     parser.add_argument('--bar_pos', type=str, default='south',
-                        help='Position of color-bar (south / east)')
+                        help='Position of color-bar (north/south/east/west)')
     parser.add_argument('--figsize', type=float, nargs=2,
                         default=None, help='Figure size (width, height) in inches')
     parser.add_argument('--dpi', type=int, default=150,
@@ -183,7 +183,7 @@ def main(args=None):
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
-        if args.bar_pos.lower() == 'south':
+        if args.bar_pos.lower() == 'south-inset':
             cbar_bottom = 0.3 * (args.fontsize / 12) / args.figsize[1]
             cbar_top = cbar_bottom + 0.1 / args.figsize[1]
             gs1.update(left=0.01, right=0.99, bottom=cbar_top+0.001,
@@ -193,13 +193,32 @@ def main(args=None):
                        top=cbar_top, wspace=0.1, hspace=0.1)
             c_orient = 'h'
             c_axes = plt.subplot(gs2[0], facecolor='black')
-        elif args.bar_pos.lower() == 'south_out':
+        elif args.bar_pos.lower() == 'south':
             gs1.update(left=0.01, right=0.99, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             c_orient = 'h'
             c_axes = figure.add_subplot(3, 3, 8)
             c_axes.set_position([0.1, 0.1, 0.8, 0.05])
             print('Rect: ', c_axes.get_position())
+        elif args.bar_pos.lower() == 'north':
+            cbarh = 0.15 * (args.fontsize / 12) / args.figsize[1]
+            gs1.update(left=0.01, right=0.99, bottom=0.01,
+                       top=0.99 - cbarh, wspace=0.01, hspace=0.01)
+            gs2 = gridspec.GridSpec(1, 1)
+            gs2.update(left=0.07, right=0.93, bottom=0.99 - cbarh,
+                       top=0.99, wspace=0.01, hspace=0.01)
+            c_orient = 'h'
+            c_axes = plt.subplot(gs2[0], facecolor='black')
+            print('Rect: ', c_axes.get_position())
+        elif args.bar_pos.lower() == 'west':
+            cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
+            gs1.update(left=0.01 + cbarw, right=0.99, bottom=0.01,
+                       top=0.99, wspace=0.01, hspace=0.01)
+            gs2 = gridspec.GridSpec(1, 1)
+            gs2.update(left=0.01, right=cbarw, bottom=0.08,
+                       top=0.92, wspace=0.01, hspace=0.01)
+            c_orient = 'v'
+            c_axes = plt.subplot(gs2[0], facecolor='black')
         elif args.bar_pos.lower() == 'east':
             cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
             gs1.update(left=0.01, right=1 - cbarw, bottom=0.01,
