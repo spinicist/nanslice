@@ -24,7 +24,7 @@ setup(
     install_requires=['matplotlib>=3.2.0',
                       'nibabel>=2.0.0',
                       'numpy>=1.14.2',
-                      'scipy>=1.1.0',
+                      'scipy>=1.6.0',
                       'colorcet>=2.0.0'],
     python_requires='>=3',
     license='MPL',
