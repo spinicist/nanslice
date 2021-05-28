@@ -4,7 +4,7 @@
 Contains the :py:class:`~nanslice.layer.Layer` class and the :py:func:`~nanslice.layer.blend_layers`
 function.
 """
-from numpy import isfinite, nanpercentile, ma, ones_like, array
+from numpy import isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle
 from nibabel import load
 from . import slice_func
 from .box import Box
@@ -40,7 +40,7 @@ class Layer:
     """
 
     def __init__(self, image, scale=1.0, volume=0, interp_order=1,
-                 cmap=None, clim=None, climp=None, label='',
+                 cmap=None, clim=None, climp=None, label='', component=None,
                  mask=None, mask_threshold=0, crop_center=None, crop_size=None,
                  alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label='',
                  background='black'):
@@ -50,8 +50,21 @@ class Layer:
         self.volume = volume
         self.label = label
 
-        self.img_data = self.image.get_data()
+        self.img_data = array(self.image.get_data())
         self.img_data[~isfinite(self.img_data)] = 0
+        if iscomplexobj(self.img_data):
+            if component is None:
+                self.img_data = self.img_data.real
+            elif component == 'real':
+                self.img_data = self.img_data.real
+            elif component == 'imag':
+                self.img_data = self.img_data.imag
+            elif component == 'mag':
+                self.img_data = abs(self.img_data)
+            elif component == 'phase':
+                self.img_data = angle(self.img_data)
+            else:
+                raise('Unknown component type ' + component)
         self.matrix = self.img_data.shape
 
         self.mask_image = ensure_image(mask)

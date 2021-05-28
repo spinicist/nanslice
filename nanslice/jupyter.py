@@ -29,17 +29,19 @@ def three_plane(images, orient='clin', samples=128,
 
 def three_plane(images, orient='clin', samples=128,
                 volume=0, cbar=None, contour=None,
+                component=None,
                 interactive=False, title=None):
     if interactive:
         plt.ion()
     else:
         plt.ioff()
     if isinstance(images, str):
-        layers = [Layer(images, volume=volume), ]
+        layers = [Layer(images, volume=volume, component=component), ]
     elif isinstance(images, Layer):
         layers = [images, ]
     elif isinstance(images[0], str):
-        layers = [Layer(img, volume=volume) for img in images]
+        layers = [Layer(img, volume=volume, component=component)
+                  for img in images]
     else:
         layers = images
     bbox = layers[0].bbox
@@ -125,14 +127,14 @@ def slice_axis(images, nrows=1, ncols=3, slice_axis='z', slice_lims=(0.25, 0.75)
 
 
 def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], absolute=False,
-           orient='clin', samples=128,
+           orient='clin', samples=128, component=None,
            cbar=None, contour=None, title=None):
     if isinstance(images, str):
-        layers = [Layer(images), ]
+        layers = [Layer(images, component=component), ]
     elif isinstance(images, Layer):
         layers = [images, ]
     elif isinstance(images[0], str):
-        layers = [Layer(img) for img in images]
+        layers = [Layer(img, component=component) for img in images]
     else:
         layers = images
     plt.ioff()
@@ -191,8 +193,8 @@ def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], abso
     return fig
 
 
-def timeseries(image, axis='z', orient='clin', clim=None, title=None):
-    series = Layer(image, clim=clim)
+def timeseries(image, axis='z', orient='clin', clim=None, title=None, component=None):
+    series = Layer(image, clim=clim, component=component)
     plt.ioff()
     bbox = series.bbox
     N = series.matrix[3]
@@ -215,10 +217,12 @@ def timeseries(image, axis='z', orient='clin', clim=None, title=None):
     return fig
 
 
-def compare(image1, image2, axis='z', orient='clin', samples=128,
+def compare(image1, image2, axis='z', orient='clin', samples=128, component=None,
             clim=None, title=None, mask=None, diff_clim=None):
-    layer1 = Layer(image1, interp_order=0, clim=clim, mask=mask)
-    layer2 = Layer(image2, interp_order=0, clim=layer1.clim, mask=mask)
+    layer1 = Layer(image1, interp_order=0, clim=clim,
+                   mask=mask, component=component)
+    layer2 = Layer(image2, interp_order=0, clim=layer1.clim,
+                   mask=mask, component=component)
     diff_data = 100 * (layer2.image.get_data() - layer1.image.get_data()
                        ) / layer1.image.get_data()
     if diff_clim is None:
