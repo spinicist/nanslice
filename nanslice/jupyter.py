@@ -193,21 +193,26 @@ def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], abso
     return fig
 
 
-def timeseries(image, axis='z', orient='clin', clim=None, title=None, component=None):
+def series(image, axis='z', orient='clin', clim=None, title=None, component=None, cols=None):
     series = Layer(image, clim=clim, component=component)
     plt.ioff()
     bbox = series.bbox
-    N = series.matrix[3]
-    gs1 = gs.GridSpec(1, N)
-    fig = plt.figure(facecolor='black', figsize=(3*N, 3))
+    if cols is None:
+        rows = 1
+        cols = series.matrix[3]
+    else:
+        rows = int(np.ceil(series.matrix[3] / cols))
+    gs1 = gs.GridSpec(rows, cols)
+    fig = plt.figure(facecolor='black', figsize=(3*cols, 3*rows))
 
     ax_ind = Axis_map[axis]
     slcr = Slicer(bbox, bbox.center[ax_ind],
                   axis, samples=series.matrix[ax_ind], orient=orient)
-    for i in range(N):
+    for i in range(series.matrix[3]):
         series.volume = i
         sl = series.get_color(slcr)
-        iax = fig.add_subplot(gs1[i], facecolor='black')
+        iax = fig.add_subplot(
+            gs1[int(i / cols), int(i % cols)], facecolor='black')
         iax.imshow(sl, origin='lower', extent=slcr.extent,
                    interpolation='nearest')
         iax.axis('off')
