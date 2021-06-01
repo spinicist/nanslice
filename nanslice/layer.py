@@ -116,15 +116,6 @@ class Layer:
         else:
             self._back = array([0])
 
-        self.is_complex = iscomplex(self.img_data).any()
-        if self.is_complex:
-            self.comp = 'real'
-
-    def component(self, comp):
-        if self.is_complex:
-            self.comp = comp
-            return self
-
     def get_slice(self, slicer):
         """
         Returns a slice through the base image
@@ -135,19 +126,7 @@ class Layer:
         """
         vals = slicer.sample(self.img_data, self.image.affine,
                              self.interp_order, self.scale, self.volume)
-        if self.is_complex:
-            if self.comp == 'real':
-                return vals.real
-            elif self.comp == 'imag':
-                return vals.imag
-            elif self.comp == 'mag':
-                return absolute(vals)
-            elif self.comp == 'phase':
-                return angle(vals)
-            else:
-                return vals.real
-        else:
-            return vals
+        return vals
 
     def get_color(self, slicer):
         """
