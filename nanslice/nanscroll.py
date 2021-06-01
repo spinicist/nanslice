@@ -35,6 +35,8 @@ def main(args=None):
                         help='Axis to slice along (x/y/z)')
     parser.add_argument('--slice_lims', type=float, nargs=2, default=(0.01, 0.99),
                         help='Slice between these limits along the axis, default=0.1 0.9')
+    parser.add_argument(
+        '--time', help='Scroll through time not space', action='store_true')
     parser.add_argument('--volume', type=int, default=0,
                         help='Use this volume from a timeseries')
     parser.add_argument('--figsize', type=float, nargs=2, default=(6, 6),
@@ -64,7 +66,9 @@ def main(args=None):
         bbox = Box.fromImage(layers[0].image)
     print(bbox)
     args.slice_axis = Axis_map[args.slice_axis]
-    if args.slices == -1:
+    if args.time:
+        slices = 1
+    elif args.slices == -1:
         slices = layers[0].image.shape[args.slice_axis]
     else:
         slices = args.slices
@@ -91,15 +95,26 @@ def main(args=None):
                         extent=slicer.extent, interpolation=args.interp)
     axes.axis('off')
 
-    def update_frame(frame):
+    def update_space(frame):
         """Draws the next frame"""
         print('Slice pos ', slice_pos[frame])
         slicer = Slicer(bbox, slice_pos[frame], args.slice_axis,
                         args.samples, orient=args.orient)
         sl_final = blend_layers(layers, slicer)
         image.set_data(sl_final)
+
+    def update_time(frame):
+        """Draws the next frame"""
+        print('Time frame ', frame)
+        layers[0].volume = frame
+        sl_final = blend_layers(layers, slicer)
+        image.set_data(sl_final)
+
     print('*** Animate Frame')
-    ani = FuncAnimation(fig, update_frame, frames=len(slice_pos))
+    if args.time:
+        ani = FuncAnimation(fig, update_time, frames=layers[0].image.shape[3])
+    else:
+        ani = FuncAnimation(fig, update_space, frames=len(slice_pos))
     print('*** Save')
     ani.save(args.output, fps=args.fps, bitrate=args.bitrate,
              savefig_kwargs={'facecolor': 'black'})

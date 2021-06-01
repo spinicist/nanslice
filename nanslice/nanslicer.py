@@ -183,17 +183,17 @@ def main(args=None):
 
     if args.base_label or args.overlay_label:
         print('*** Adding colorbar')
-        if args.bar_pos.lower() == 'south-inset':
+        if args.bar_pos.lower() == 'south':
             cbar_bottom = 0.3 * (args.fontsize / 12) / args.figsize[1]
             cbar_top = cbar_bottom + 0.1 / args.figsize[1]
             gs1.update(left=0.01, right=0.99, bottom=cbar_top+0.001,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.05, right=0.95, bottom=cbar_bottom,
+            gs2.update(left=0.1, right=0.9, bottom=cbar_bottom,
                        top=cbar_top, wspace=0.1, hspace=0.1)
             c_orient = 'h'
             c_axes = plt.subplot(gs2[0], facecolor='black')
-        elif args.bar_pos.lower() == 'south':
+        elif args.bar_pos.lower() == 'south-inset':
             gs1.update(left=0.01, right=0.99, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             c_orient = 'h'
@@ -220,7 +220,7 @@ def main(args=None):
             c_orient = 'v'
             c_axes = plt.subplot(gs2[0], facecolor='black')
         elif args.bar_pos.lower() == 'east':
-            cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
+            cbarw = 0.35 * (args.fontsize / 12) / args.figsize[0]
             gs1.update(left=0.01, right=1 - cbarw, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
