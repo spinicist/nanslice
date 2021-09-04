@@ -22,6 +22,14 @@ notebooks.
 Documentation can be found at https://nanslice.readthedocs.io/en/latest/.
 
 A Jupyter Notebook demonstrating the module can be found at https://mybinder.org/v2/gh/spinicist/nanslice/master?filepath=doc%2Fexample.ipynb.
+When using a Jupyter Notebook (as a standalone) or in VS Code, you need to choose the `widget` backend:
+
+```python
+import matplotlib
+%matplotlib widget
+```
+
+Unfortunately, the `widget` backend is not supported yet in [PyCharm](https://youtrack.jetbrains.com/issue/PY-38292) or [Colab](https://github.com/googlecolab/colabtools/issues/86).
 
 In dual-coding instead of plotting thresholded blobs of T-statistics or p-values
 on top of structural images, transparency (or alpha) is used to convey the 
