@@ -21,6 +21,7 @@ def three_plane(images, orient='clin', samples=128,
     - images -- Either a filename (in a string or Path object) or a list of Layer objects
     - orient -- 'clin' or 'preclin'
     - sample -- Number of samples, default is 128, higher is better but slower
+    - cmap -- Specify colormap
     - cbar -- Adds a colorbar. Either 'True' or an integer giving the layer the colorbar is from
     - contour -- Value(s) that contours are drawn at. Requires that cbar be set - contours will come from same layer
     - interactive -- Add sliders and make the view interactive
@@ -28,7 +29,7 @@ def three_plane(images, orient='clin', samples=128,
 
 
 def three_plane(images, orient='clin', samples=128,
-                volume=0, cbar=None, contour=None,
+                volume=0, cmap=None, cbar=None, contour=None,
                 component=None,
                 interactive=False, title=None):
     if interactive:
@@ -36,11 +37,12 @@ def three_plane(images, orient='clin', samples=128,
     else:
         plt.ioff()
     if isinstance(images, str):
-        layers = [Layer(images, volume=volume, component=component), ]
+        layers = [Layer(images, cmap=cmap, volume=volume,
+                        component=component), ]
     elif isinstance(images, Layer):
         layers = [images, ]
     elif isinstance(images[0], str):
-        layers = [Layer(img, volume=volume, component=component)
+        layers = [Layer(img, cmap=cmap, volume=volume, component=component)
                   for img in images]
     else:
         layers = images
