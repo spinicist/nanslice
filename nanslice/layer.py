@@ -99,11 +99,12 @@ class Layer:
 
         if check_path(alpha):
             self.alpha_image = load(str(alpha))
-            if alpha_lim:
-                self.alpha_lim = alpha_lim
-            else:
+            if alpha_lim is None:
                 self.alpha_lim = nanpercentile(
-                    self.alpha_image.get_data(), (2, 98))
+                    abs(self.alpha_image.get_data()), (2, 98))
+            else:
+                self.alpha_lim = alpha_lim
+
         elif alpha:
             self.alpha_image = ones_like(self.image) * alpha
         else:
@@ -159,8 +160,8 @@ class Layer:
         """
 
         if self.alpha_image:
-            alpha_slice = slicer.sample(
-                self.alpha_image.get_data(), self.alpha_image.affine, self.interp_order, self.alpha_scale)
+            alpha_slice = abs(slicer.sample(
+                self.alpha_image.get_data(), self.alpha_image.affine, self.interp_order, self.alpha_scale, self.volume))
             alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lim)
             return alpha_slice
         else:
