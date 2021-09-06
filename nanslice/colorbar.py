@@ -114,7 +114,10 @@ def alphabar(axes, cm_name, clims, clabel,
         alpha = np.tile(np.linspace(0, 1, steps)[np.newaxis, :], [steps, 1])
     color = slice_func.colorize(cdata, cm_name, clims)
 
-    backg = np.ones((steps, steps, 3))
+    if black_backg:
+        backg = np.zeros((steps, steps, 3))
+    else:
+        backg = np.ones((steps, steps, 3))
     acmap = slice_func.blend(backg, color, alpha)
     axes.imshow(acmap, origin='lower', interpolation='hanning',
                 extent=ext, aspect='auto')
