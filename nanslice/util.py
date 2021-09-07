@@ -91,3 +91,29 @@ def add_common_arguments(parser):
     parser.add_argument('--orient', type=str, default='clin',
                         help='Clinical (clin) or Pre-clinical (preclin) orientation')
     return parser
+
+
+Axis_map = {'x': 0, 'y': 1, 'z': 2}
+Orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
+              'preclin': ({0: 2, 1: 2, 2: 0}, {0: 1, 1: 0, 2: 1})}
+
+
+def axis_indices(axis, orient='clin'):
+    """
+    Returns a pair of indices corresponding to right/up for the given orientation.
+    Parameters:
+    axis:   The perpendicular axis to the slice. Use Axis_map to convert between x/y/z and 0/1/2
+    orient: Either 'clin' or 'preclin'
+    """
+    this_orient = Orient_map[orient]
+    return (this_orient[0][axis], this_orient[1][axis])
+
+
+def crosshairs(axis, point, direction, orient, color='g'):
+    """
+    Helper function to draw crosshairs on an axis
+    """
+    ind1, ind2 = axis_indices(Axis_map[direction], orient)
+    vline = axis.axvline(x=point[ind1], color=color)
+    hline = axis.axhline(y=point[ind2], color=color)
+    return (vline, hline)

@@ -5,7 +5,7 @@ import matplotlib.gridspec as gs
 import ipywidgets as ipy
 import nibabel as nib
 from . import util
-from .slicer import Slicer, Axis_map
+from .slicer import Slicer
 from .layer import Layer, blend_layers
 from .colorbar import colorbar, alphabar
 
@@ -46,6 +46,7 @@ def three_plane(images, orient='clin', samples=128,
                   for img in images]
     else:
         layers = images
+    directions = ('z', 'x', 'y')
     bbox = layers[0].bbox
     gs1 = gs.GridSpec(1, 3)
     fig = plt.figure(facecolor='black', figsize=(9, 3))
@@ -79,10 +80,14 @@ def three_plane(images, orient='clin', samples=128,
     implots = [None, None, None]
     iax = [None, None, None]
 
+    values = ipy.Output()
+    crosshairs = [None, None, None]
+
     def wrap_sections(pos_x, pos_y, pos_z):
         pos = (pos_x, pos_y, pos_z)
         for i in range(3):
-            slcr = Slicer(bbox, pos[i], i, samples=samples, orient=orient)
+            slcr = Slicer(bbox, pos[util.Axis_map[directions[i]]], directions[i],
+                          samples=samples, orient=orient)
             blended_slice = blend_layers(layers, slcr)
             if implots[i]:
                 implots[i].set_data(blended_slice)
@@ -95,24 +100,45 @@ def three_plane(images, orient='clin', samples=128,
                 sl_contour = layers[cbar].get_alpha(slcr)
                 iax[i].contour(sl_contour, levels=contour, origin='lower', extent=slcr.extent,
                                colors='k', linestyles='-', linewidths=1)
+            if interactive:
+                if crosshairs[i]:
+                    crosshairs[i][0].remove()
+                    crosshairs[i][1].remove()
+                crosshairs[i] = util.crosshairs(
+                    iax[i], pos, directions[i], orient, 'r')
+        if interactive:
+            vals = [
+                f'{l.label}:\t{l.get_value([pos_x, pos_y, pos_z]):.3}' for l in layers]
+            values.clear_output()
+            with values:
+                print('\n'.join(vals))
+
     wrap_sections(bbox.center[0], bbox.center[1], bbox.center[2])
     if title:
         fig.suptitle(title, color='white')
     if interactive:
         # Setup widgets
-        slider_x = ipy.FloatSlider(min=bbox.start[0], max=bbox.end[0], value=bbox.center[0],
-                                   continuous_update=True, description='X:')
-        slider_y = ipy.FloatSlider(min=bbox.start[1], max=bbox.end[1], value=bbox.center[1],
-                                   continuous_update=True, description='Y:')
-        slider_z = ipy.FloatSlider(min=bbox.start[2], max=bbox.end[2], value=bbox.center[2],
-                                   continuous_update=True, description='Z:')
+        slider_x = ipy.FloatSlider(min=bbox.start[0], max=bbox.end[0], value=round(bbox.center[0], 1),
+                                   step=0.1, continuous_update=True, description='X:', readout=False)
+        slider_y = ipy.FloatSlider(min=bbox.start[1], max=bbox.end[1], value=round(bbox.center[1]),
+                                   step=0.1, continuous_update=True, description='Y:', readout=False)
+        slider_z = ipy.FloatSlider(min=bbox.start[2], max=bbox.end[2], value=round(bbox.center[2]),
+                                   step=0.1, continuous_update=True, description='Z:', readout=False)
+        text_x = ipy.BoundedFloatText(
+            min=bbox.start[0], max=bbox.end[0], value=round(bbox.center[0], 1), step=0.1)
+        text_y = ipy.BoundedFloatText(
+            min=bbox.start[1], max=bbox.end[1], value=round(bbox.center[1], 1), step=0.1)
+        text_z = ipy.BoundedFloatText(
+            min=bbox.start[2], max=bbox.end[2], value=round(bbox.center[2], 1), step=0.1)
+        link_x = ipy.jslink((slider_x, 'value'), (text_x, 'value'))
+        link_y = ipy.jslink((slider_y, 'value'), (text_y, 'value'))
+        link_z = ipy.jslink((slider_z, 'value'), (text_z, 'value'))
         widgets = ipy.interactive(
             wrap_sections, pos_x=slider_x, pos_y=slider_y, pos_z=slider_z)
         # Now do some manual layout
-        # Set the sliders to horizontal layout
-        hbox = ipy.HBox(widgets.children[0:3])
-        vbox = ipy.VBox((hbox, widgets.children[3]))
-        # iplot.widget.children[-1].layout.height = '350px'
+        slider_box = ipy.VBox(children=[slider_x, slider_y, slider_z])
+        text_box = ipy.VBox(children=[text_x, text_y, text_z], width=10)
+        vbox = ipy.HBox(children=[slider_box, text_box, values])
         return vbox
     else:
         plt.close()
@@ -177,8 +203,8 @@ def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], abso
             if absolute:
                 pos = slice_pos[i]
             else:
-                pos = bbox.start[Axis_map[axis]] + \
-                    bbox.diag[Axis_map[axis]]*slice_pos[i]
+                pos = bbox.start[util.Axis_map[axis]] + \
+                    bbox.diag[util.Axis_map[axis]]*slice_pos[i]
             slcr = Slicer(bbox, pos, axis, samples=samples, orient=orient)
             blended_slice = blend_layers(layers, slcr)
             iax = fig.add_subplot(gs1[row, col], facecolor='black')
@@ -207,7 +233,7 @@ def series(image, axis='z', orient='clin', clim=None, title=None, component=None
     gs1 = gs.GridSpec(rows, cols)
     fig = plt.figure(facecolor='black', figsize=(3*cols, 3*rows))
 
-    ax_ind = Axis_map[axis]
+    ax_ind = util.Axis_map[axis]
     slcr = Slicer(bbox, bbox.center[ax_ind],
                   axis, samples=series.matrix[ax_ind], orient=orient)
     for i in range(series.matrix[3]):
@@ -265,7 +291,7 @@ def compare(image1, image2, axis='z', orient='clin', samples=128, component=None
     colorbar(diff_cax, diff_layer.cmap, diff_layer.clim, diff_layer.label,
              black_backg=True, orient='v')
 
-    ax_ind = Axis_map[axis]
+    ax_ind = util.Axis_map[axis]
     slcr = Slicer(bbox, bbox.center[ax_ind],
                   axis, samples=layer1.matrix[ax_ind], orient=orient)
     slice1 = layer1.get_color(slcr)

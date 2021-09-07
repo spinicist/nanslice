@@ -34,14 +34,6 @@ from .layer import Layer, blend_layers
 PROG_NAME = 'NaNViewer'
 PROG_VERSION = "1.0"
 
-def crosshairs(axis, point, direction, orient, color='g'):
-    """
-    Helper function to draw crosshairs on an axis
-    """
-    ind1, ind2 = axis_indices(Axis_map[direction], orient)
-    vline = axis.axvline(x=point[ind1], color=color)
-    hline = axis.axhline(y=point[ind2], color=color)
-    return (vline, hline)
 
 def sample_point(img, point, order=1):
     """
@@ -63,7 +55,7 @@ class NaNCanvas(FigureCanvas):
                              cmap=args.base_map,
                              clim=args.base_lims,
                              mask=args.mask,
-                             interp_order=args.interp_order),]
+                             interp_order=args.interp_order), ]
         if args.overlay:
             self.layers.append(Layer(args.overlay,
                                      cmap=args.overlay_map,
@@ -76,8 +68,10 @@ class NaNCanvas(FigureCanvas):
 
         self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='k')
         FigureCanvas.__init__(self, self.fig)
-        FigureCanvas.mpl_connect(self, 'button_press_event', self.handle_mouse_event)
-        FigureCanvas.mpl_connect(self, 'motion_notify_event', self.handle_mouse_event)
+        FigureCanvas.mpl_connect(
+            self, 'button_press_event', self.handle_mouse_event)
+        FigureCanvas.mpl_connect(
+            self, 'motion_notify_event', self.handle_mouse_event)
         self.setParent(parent)
         FigureCanvas.setSizePolicy(self,
                                    QtWidgets.QSizePolicy.Expanding,
@@ -86,8 +80,10 @@ class NaNCanvas(FigureCanvas):
         gs1 = GridSpec(1, 3)
         if args.base_map or args.overlay:
             gs2 = GridSpec(1, 1)
-            gs1.update(left=0.01, right=0.99, bottom=0.16, top=0.99, wspace=0.01, hspace=0.01)
-            gs2.update(left=0.08, right=0.92, bottom=0.08, top=0.15, wspace=0.1, hspace=0.1)
+            gs1.update(left=0.01, right=0.99, bottom=0.16,
+                       top=0.99, wspace=0.01, hspace=0.01)
+            gs2.update(left=0.08, right=0.92, bottom=0.08,
+                       top=0.15, wspace=0.1, hspace=0.1)
             self.cbar_axis = self.fig.add_subplot(gs2[0], facecolor='black')
             if args.overlay_alpha:
                 alphabar(self.cbar_axis, args.overlay_map, args.overlay_lim, args.overlay_label,
@@ -100,7 +96,8 @@ class NaNCanvas(FigureCanvas):
                     colorbar(self.cbar_axis, self.layers[1].cmap,
                              self.layers[1].clim, args.overlay_label)
         else:
-            gs1.update(left=0.01, right=0.99, bottom=0.01, top=0.99, wspace=0.01, hspace=0.01)
+            gs1.update(left=0.01, right=0.99, bottom=0.01,
+                       top=0.99, wspace=0.01, hspace=0.01)
         self.axes = [self.fig.add_subplot(gs, facecolor='black') for gs in gs1]
         self.cursor = self.layers[0].bbox.center
         self.args = args
@@ -167,7 +164,8 @@ class NaNCanvas(FigureCanvas):
         if event.button == 1:
             for i in range(3):
                 if event.inaxes == self.axes[i]:
-                    ind1, ind2 = axis_indices(Axis_map[self.directions[i]], self.args.orient)
+                    ind1, ind2 = axis_indices(
+                        Axis_map[self.directions[i]], self.args.orient)
                     self.cursor[ind1] = event.xdata
                     self.cursor[ind2] = event.ydata
                     self.update_figure(hold=i)
@@ -176,19 +174,23 @@ class NaNCanvas(FigureCanvas):
                 color_val = sample_point(self.layers[1].base_image,
                                          self.cursor,
                                          self.args.interp_order)
-                msg = msg + ' ' + self.args.color_label + ': ' + str(color_val[0])
+                msg = msg + ' ' + self.args.color_label + \
+                    ': ' + str(color_val[0])
                 if self.layers[1].alpha_image:
                     alpha_val = sample_point(self.layers[1].alpha_image,
                                              self.cursor,
                                              self.args.interp_order)
-                    msg = msg + ' ' + self.args.alpha_label + ': ' + str(alpha_val[0])
+                    msg = msg + ' ' + self.args.alpha_label + \
+                        ': ' + str(alpha_val[0])
             # Parent of this is the layout, call parent again to get the main window
             self.parent().parent().statusBar().showMessage(msg)
+
 
 class NaNViewWindow(QtWidgets.QMainWindow):
     """
     Main window class for the viewer
     """
+
     def __init__(self, args):
         QtWidgets.QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -206,7 +208,8 @@ class NaNViewWindow(QtWidgets.QMainWindow):
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
         layout = QtWidgets.QVBoxLayout(self.main_widget)
-        layout.addWidget(NaNCanvas(args, self.main_widget, width=5, height=4, dpi=100))
+        layout.addWidget(NaNCanvas(args, self.main_widget,
+                                   width=5, height=4, dpi=100))
 
     def _file_quit(self):
         """Callback for quit menu entry"""
@@ -220,6 +223,7 @@ Copyright 2017 Tobias Wood
 A simple viewer for dual-coded overlays.
 
 With thanks to http://matplotlib.org/examples/user_interfaces/embedding_in_qt5.html""")
+
 
 def main(args=None):
     """
@@ -237,6 +241,7 @@ def main(args=None):
     window.setWindowTitle("%s" % PROG_NAME)
     window.show()
     sys.exit(application.exec_())
+
 
 if __name__ == "__main__":
     main()

@@ -4,7 +4,8 @@
 Contains the :py:class:`~nanslice.layer.Layer` class and the :py:func:`~nanslice.layer.blend_layers`
 function.
 """
-from numpy import isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle
+import scipy.ndimage.interpolation as ndinterp
+from numpy import isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot
 from nibabel import load
 from . import slice_func
 from .box import Box
@@ -116,6 +117,20 @@ class Layer:
             self._back = array([1])
         else:
             self._back = array([0])
+
+    def get_value(self, pos):
+        """"
+        Returns the value of the image at the given position
+
+        Parameters:
+
+        - pos -- The position to sample the image value at
+        """
+        pos = mat(pos).T
+        scale = mat(self.image.affine[0:3, 0:3]).I
+        offset = dot(-scale, self.image.affine[0:3, 3]).T
+        vox = dot(scale, pos) + offset
+        return ndinterp.map_coordinates(self.img_data, vox, order=1)[0]
 
     def get_slice(self, slicer):
         """
