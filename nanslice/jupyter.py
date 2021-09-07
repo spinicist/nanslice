@@ -6,7 +6,7 @@ import ipywidgets as ipy
 import nibabel as nib
 from . import util
 from .slicer import Slicer
-from .layer import Layer, blend_layers
+from .layer import Layer, H5Layer, blend_layers
 from .colorbar import colorbar, alphabar
 
 

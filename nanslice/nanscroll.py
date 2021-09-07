@@ -63,7 +63,7 @@ def main(args=None):
     if layers[0].mask_image:
         bbox = Box.fromMask(layers[0].mask_image)
     else:
-        bbox = Box.fromImage(layers[0].image)
+        bbox = Box.fromImage(layers[0].matrix, layers[0].affine)
     print(bbox)
     args.slice_axis = Axis_map[args.slice_axis]
     if args.time:

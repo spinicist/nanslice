@@ -5,11 +5,30 @@ Contains the :py:class:`~nanslice.layer.Layer` class and the :py:func:`~nanslice
 function.
 """
 import scipy.ndimage.interpolation as ndinterp
-from numpy import isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot
+import h5py
+from numpy import isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot, eye
 from nibabel import load
 from . import slice_func
 from .box import Box
 from .util import ensure_image, check_path
+
+
+def get_component(data, component):
+    data[~isfinite(data)] = 0
+    if iscomplexobj(data):
+        if component is None:
+            data = data.real
+        elif component == 'real':
+            data = data.real
+        elif component == 'imag':
+            data = data.imag
+        elif component == 'mag':
+            data = abs(data)
+        elif component == 'phase':
+            data = angle(data)
+        else:
+            raise('Unknown component type ' + component)
+    return data
 
 
 class Layer:
@@ -45,27 +64,14 @@ class Layer:
                  mask=None, mask_threshold=0, crop_center=None, crop_size=None,
                  alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label='',
                  background='black'):
-        self.image = ensure_image(image)
         self.scale = scale
         self.interp_order = interp_order
         self.volume = volume
         self.label = label
 
-        self.img_data = array(self.image.get_data())
-        self.img_data[~isfinite(self.img_data)] = 0
-        if iscomplexobj(self.img_data):
-            if component is None:
-                self.img_data = self.img_data.real
-            elif component == 'real':
-                self.img_data = self.img_data.real
-            elif component == 'imag':
-                self.img_data = self.img_data.imag
-            elif component == 'mag':
-                self.img_data = abs(self.img_data)
-            elif component == 'phase':
-                self.img_data = angle(self.img_data)
-            else:
-                raise('Unknown component type ' + component)
+        image = ensure_image(image)
+        self.affine = image.affine
+        self.img_data = get_component(image.get_data(), component)
         self.matrix = self.img_data.shape
 
         self.mask_image = ensure_image(mask)
@@ -75,12 +81,12 @@ class Layer:
         elif self.mask_image:
             self.bbox = Box.fromMask(self.mask_image)
         else:
-            self.bbox = Box.fromImage(self.image)
+            self.bbox = Box.fromImage(self.matrix, self.affine)
 
         if clim is not None:
             self.clim = clim
         else:
-            if len(self.img_data.shape) == 4:
+            if len(self.matrix) == 4:
                 limdata = self.img_data[:, :, :, self.volume].squeeze()
             else:
                 limdata = self.img_data
@@ -127,8 +133,8 @@ class Layer:
         - pos -- The position to sample the image value at
         """
         pos = mat(pos).T
-        scale = mat(self.image.affine[0:3, 0:3]).I
-        offset = dot(-scale, self.image.affine[0:3, 3]).T
+        scale = mat(self.affine[0:3, 0:3]).I
+        offset = dot(-scale, self.affine[0:3, 3]).T
         vox = dot(scale, pos) + offset
         return ndinterp.map_coordinates(self.img_data, vox, order=1)[0]
 
@@ -140,7 +146,7 @@ class Layer:
 
         - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice this layer with
         """
-        vals = slicer.sample(self.img_data, self.image.affine,
+        vals = slicer.sample(self.img_data, self.affine,
                              self.interp_order, self.scale, self.volume)
         return vals
 
@@ -160,7 +166,7 @@ class Layer:
             ), self.mask_image.affine, 0) > self.mask_threshold
         elif self.mask_threshold:
             mask_slc = slicer.sample(
-                self.img_data, self.image.affine, self.interp_order, self.scale, self.volume) > self.mask_threshold
+                self.img_data, self.affine, self.interp_order, self.scale, self.volume) > self.mask_threshold
         else:
             return None
         return mask_slc
@@ -218,3 +224,106 @@ def blend_layers(layers, slicer):
         else:
             slc = slice_func.mask(next_slc, next_layer.get_mask(slicer), slc)
     return slc
+
+
+class H5Layer(Layer):
+    """
+    Read a Layer from an HDF5 dataset. Has a different constructor to normal
+    layers.
+
+    - path -- Path to .h5 file
+    - ds   -- Dataset path within the .h5 file
+    - slices -- A list of (dim, index) pairs to slice through
+    - scale  -- A scaling factor to multiply all voxels in the image by
+    - volume -- If reading a 4D file, specify which volume to use
+    - interp_order -- Interpolation order. 1 is linear interpolation
+    - cmap  -- The colormap to apply to the Layer. Any valid matplotlib colormap
+    - clim  -- The limits (min, max) values to use for the colormap
+    - label -- The label for this layer (used for colorbars)
+    - mask           -- A mask image to use with this layer
+    - mask_threshold -- Apply a threshold (lower) to the mask
+    - crop_center -- Center of box to crop to
+    - crop_size   -- Size of crop box
+    - alpha       -- An alpha (transparency) image to use with this layer
+    - alpha_lim  -- Specify the limits/window for the alpha image
+    - alpha_scale -- Scaling factor for the alpha image
+    - alpha_label -- Label for the alpha axis on alphabars
+    - background -- Background color for masking, either 'black' (default) or 'white'
+
+    """
+
+    def __init__(self, path, ds, slices=None, scale=1.0, volume=0, interp_order=1,
+                 cmap=None, clim=None, climp=None, label='', component=None,
+                 mask=None, mask_threshold=0, crop_center=None, crop_size=None,
+                 alpha=None, alpha_lim=None, alpha_scale=1.0, alpha_label='',
+                 background='black'):
+        self.scale = scale
+        self.interp_order = interp_order
+        self.volume = volume
+        self.label = label
+
+        self.affine = eye(4)
+        h5file = h5py.File(path, 'r')
+        h5ds = h5file[ds]
+
+        sl = [slice(None), ]*h5ds.ndim
+        if slices:
+            for dimSlice in slices:
+                sl[dimSlice[0]] = dimSlice[1]
+            self.img_data = h5ds[tuple(sl)]
+        else:
+            self.img_data = array(h5ds)
+        self.img_data = get_component(self.img_data, component)
+        self.matrix = self.img_data.shape
+
+        self.mask_image = ensure_image(mask)
+        self.mask_threshold = mask_threshold
+        if crop_center and crop_size:
+            self.bbox = Box(center=crop_center, size=crop_size)
+        elif self.mask_image:
+            self.bbox = Box.fromMask(self.mask_image)
+        else:
+            self.bbox = Box.fromImage(self.matrix, self.affine)
+
+        if clim is not None:
+            self.clim = clim
+        else:
+            if len(self.matrix) == 4:
+                limdata = self.img_data[:, :, :, self.volume].squeeze()
+            else:
+                limdata = self.img_data
+            if self.mask_image:
+                limdata = ma.masked_where(
+                    self.mask_image.get_data() == 0, limdata).compressed()
+            if climp is None:
+                climp = (2, 98)
+            self.clim = nanpercentile(limdata, climp)
+
+        if cmap:
+            self.cmap = cmap
+        elif self.clim[0] < 0 and self.clim[1] > 0:
+            self.cmap = 'twoway'
+        else:
+            self.cmap = 'gist_gray'
+
+        if check_path(alpha):
+            self.alpha_image = load(str(alpha))
+            if alpha_lim is None:
+                self.alpha_lim = nanpercentile(
+                    abs(self.alpha_image.get_data()), (2, 98))
+            else:
+                self.alpha_lim = alpha_lim
+
+        elif alpha:
+            self.alpha_image = ones_like(self.image) * alpha
+        else:
+            self.alpha_image = None
+        self.alpha_label = alpha_label
+        self.alpha_scale = alpha_scale
+
+        if background == 'white':
+            self._back = array([1])
+        else:
+            self._back = array([0])
+
+        h5file.close()

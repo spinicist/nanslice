@@ -36,18 +36,18 @@ class Box:
         return 'Box Start: ' + str(self.start) + ' End: ' + str(self.end)
 
     @classmethod
-    def fromImage(cls, img):
+    def fromImage(cls, shape, affine):
         """
         Creates a bounding box from the corners defined by an image
 
         Parameters:
 
-        - img -- An nibabel image
+        - shape  -- The shape of the image data array
+        - affine -- The affine transform for the image
         """
-        img_shape = img.get_data().shape
         corners = np.array([[0, 0, 0, 1.],
-                            [img_shape[0] - 1, img_shape[1] - 1, img_shape[2] - 1, 1.]])
-        corners = np.dot(img.get_affine(), corners.T)
+                            [shape[0] - 1, shape[1] - 1, shape[2] - 1, 1.]])
+        corners = np.dot(affine, corners.T)
         corner1 = np.min(corners[0:3, :], axis=1)
         corner2 = np.max(corners[0:3, :], axis=1)
         return cls(corners=(corner1, corner2))

@@ -5,7 +5,7 @@ Utility functions for nanslice module
 """
 from pathlib import Path
 import numpy as np
-from nibabel import load
+import nibabel as nib
 
 
 def check_path(maybe_path):
@@ -19,7 +19,7 @@ def check_path(maybe_path):
 def ensure_image(maybe_path):
     """Helper function that lets either images or paths be passed around"""
     if check_path(maybe_path):
-        return load(str(maybe_path))
+        return nib.load(str(maybe_path))
     else:
         return maybe_path
 
