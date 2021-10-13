@@ -43,10 +43,10 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from .util import add_common_arguments
+from .util import add_common_arguments, Axis_map
 from .colorbar import colorbar, alphabar
 from .box import Box
-from .slicer import Slicer, Axis_map
+from .slicer import Slicer
 from .slice_func import scale_clip
 from .layer import Layer, blend_layers
 
