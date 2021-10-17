@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.animation import FuncAnimation
 from .box import Box
-from .slicer import Slicer, Axis_map
+from .slicer import Slicer
 from .layer import Layer, blend_layers
-from .util import add_common_arguments
+from .util import add_common_arguments, Axis_map
 
 
 def main(args=None):
@@ -63,13 +63,13 @@ def main(args=None):
     if layers[0].mask_image:
         bbox = Box.fromMask(layers[0].mask_image)
     else:
-        bbox = Box.fromImage(layers[0].matrix, layers[0].affine)
+        bbox = Box.fromImage(layers[0].shape, layers[0].affine)
     print(bbox)
     args.slice_axis = Axis_map[args.slice_axis]
     if args.time:
         slices = 1
     elif args.slices == -1:
-        slices = layers[0].image.shape[args.slice_axis]
+        slices = layers[0].shape[args.slice_axis]
     else:
         slices = args.slices
     print(slices)
@@ -112,7 +112,7 @@ def main(args=None):
 
     print('*** Animate Frame')
     if args.time:
-        ani = FuncAnimation(fig, update_time, frames=layers[0].image.shape[3])
+        ani = FuncAnimation(fig, update_time, frames=layers[0].shape[3])
     else:
         ani = FuncAnimation(fig, update_space, frames=len(slice_pos))
     print('*** Save')

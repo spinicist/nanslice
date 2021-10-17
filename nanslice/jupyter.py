@@ -227,16 +227,16 @@ def series(image, axis='z', orient='clin', clim=None, title=None, component=None
     bbox = series.bbox
     if cols is None:
         rows = 1
-        cols = series.matrix[3]
+        cols = series.shape[3]
     else:
-        rows = int(np.ceil(series.matrix[3] / cols))
+        rows = int(np.ceil(series.shape[3] / cols))
     gs1 = gs.GridSpec(rows, cols)
     fig = plt.figure(facecolor='black', figsize=(3*cols, 3*rows))
 
     ax_ind = util.Axis_map[axis]
     slcr = Slicer(bbox, bbox.center[ax_ind],
-                  axis, samples=series.matrix[ax_ind], orient=orient)
-    for i in range(series.matrix[3]):
+                  axis, samples=series.shape[ax_ind], orient=orient)
+    for i in range(series.shape[3]):
         series.volume = i
         sl = series.get_color(slcr)
         iax = fig.add_subplot(
@@ -293,7 +293,7 @@ def compare(image1, image2, axis='z', orient='clin', samples=128, component=None
 
     ax_ind = util.Axis_map[axis]
     slcr = Slicer(bbox, bbox.center[ax_ind],
-                  axis, samples=layer1.matrix[ax_ind], orient=orient)
+                  axis, samples=layer1.shape[ax_ind], orient=orient)
     slice1 = layer1.get_color(slcr)
     slice2 = layer2.get_color(slcr)
     slice3 = diff_layer.get_color(slcr)

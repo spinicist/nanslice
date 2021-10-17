@@ -121,7 +121,7 @@ def main(args=None):
         slice_pos = (bbox.center[0], bbox.center[1], bbox.center[2])
     elif args.timeseries:
         slice_pos = bbox.center[args.slice_axis]
-        slice_total = layers[0].image.shape[3]
+        slice_total = layers[0].shape[3]
     elif args.slices:
         slice_total = args.slice_rows*args.slice_cols
         if slice_total != len(args.slices):

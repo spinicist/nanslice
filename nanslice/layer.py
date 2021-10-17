@@ -72,7 +72,7 @@ class Layer:
         image = ensure_image(image)
         self.affine = image.affine
         self.img_data = get_component(image.get_data(), component)
-        self.matrix = self.img_data.shape
+        self.shape = self.img_data.shape
 
         self.mask_image = ensure_image(mask)
         self.mask_threshold = mask_threshold
@@ -81,12 +81,12 @@ class Layer:
         elif self.mask_image:
             self.bbox = Box.fromMask(self.mask_image)
         else:
-            self.bbox = Box.fromImage(self.matrix, self.affine)
+            self.bbox = Box.fromImage(self.shape, self.affine)
 
         if clim is not None:
             self.clim = clim
         else:
-            if len(self.matrix) == 4:
+            if len(self.shape) == 4:
                 limdata = self.img_data[:, :, :, self.volume].squeeze()
             else:
                 limdata = self.img_data
@@ -274,7 +274,7 @@ class H5Layer(Layer):
         else:
             self.img_data = array(h5ds)
         self.img_data = get_component(self.img_data, component)
-        self.matrix = self.img_data.shape
+        self.shape = self.img_data.shape
 
         self.mask_image = ensure_image(mask)
         self.mask_threshold = mask_threshold
@@ -283,12 +283,12 @@ class H5Layer(Layer):
         elif self.mask_image:
             self.bbox = Box.fromMask(self.mask_image)
         else:
-            self.bbox = Box.fromImage(self.matrix, self.affine)
+            self.bbox = Box.fromImage(self.shape, self.affine)
 
         if clim is not None:
             self.clim = clim
         else:
-            if len(self.matrix) == 4:
+            if len(self.shape) == 4:
                 limdata = self.img_data[:, :, :, self.volume].squeeze()
             else:
                 limdata = self.img_data
