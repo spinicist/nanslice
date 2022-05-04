@@ -6,7 +6,7 @@ function.
 """
 import scipy.ndimage.interpolation as ndinterp
 import h5py
-from numpy import isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot, eye
+from numpy import zeros, isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot, eye
 from nibabel import load
 from . import slice_func
 from .box import Box
@@ -73,6 +73,10 @@ class Layer:
         self.affine = image.affine
         self.img_data = get_component(image.get_data(), component)
         self.shape = self.img_data.shape
+        if len(self.shape) == 4:
+            self.volumes = self.shape[3]
+        else:
+            self.volumes = 1
 
         self.mask_image = ensure_image(mask)
         self.mask_threshold = mask_threshold
@@ -136,6 +140,11 @@ class Layer:
         scale = mat(self.affine[0:3, 0:3]).I
         offset = dot(-scale, self.affine[0:3, 3]).T
         vox = dot(scale, pos) + offset
+        if len(self.shape) == 4:
+            new_vox = zeros((4, 1))
+            new_vox[0:3, :] = vox
+            new_vox[3, 0] = self.volume
+            vox = new_vox
         return ndinterp.map_coordinates(self.img_data, vox, order=1)[0]
 
     def get_slice(self, slicer):

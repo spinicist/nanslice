@@ -83,13 +83,16 @@ def three_plane(images, orient='clin', samples=128,
     values = ipy.Output()
     crosshairs = [None, None, None]
 
-    def wrap_sections(pos_x, pos_y, pos_z):
+    def wrap_sections(pos_x, pos_y, pos_z, vol):
         pos = (pos_x, pos_y, pos_z)
+        for l in layers:
+            l.volume = vol
         for i in range(3):
             slcr = Slicer(bbox, pos[util.Axis_map[directions[i]]], directions[i],
                           samples=samples, orient=orient)
             blended_slice = blend_layers(layers, slcr)
             if implots[i]:
+                print(f'implots {i}')
                 implots[i].set_data(blended_slice)
             else:
                 iax[i] = fig.add_subplot(gs1[i], facecolor='black')
@@ -113,7 +116,7 @@ def three_plane(images, orient='clin', samples=128,
             with values:
                 print('\n'.join(vals))
 
-    wrap_sections(bbox.center[0], bbox.center[1], bbox.center[2])
+    wrap_sections(bbox.center[0], bbox.center[1], bbox.center[2], 0)
     if title:
         fig.suptitle(title, color='white')
     if interactive:
@@ -124,20 +127,27 @@ def three_plane(images, orient='clin', samples=128,
                                    step=0.1, continuous_update=True, description='Y:', readout=False)
         slider_z = ipy.FloatSlider(min=bbox.start[2], max=bbox.end[2], value=round(bbox.center[2]),
                                    step=0.1, continuous_update=True, description='Z:', readout=False)
+        slider_v = ipy.FloatSlider(min=0, max=layers[0].volumes, value=0, step=1,
+                                   continuous_update=True, description="Vol:", readout=False)
         text_x = ipy.BoundedFloatText(
             min=bbox.start[0], max=bbox.end[0], value=round(bbox.center[0], 1), step=0.1)
         text_y = ipy.BoundedFloatText(
             min=bbox.start[1], max=bbox.end[1], value=round(bbox.center[1], 1), step=0.1)
         text_z = ipy.BoundedFloatText(
             min=bbox.start[2], max=bbox.end[2], value=round(bbox.center[2], 1), step=0.1)
+        text_v = ipy.BoundedFloatText(
+            min=0, max=layers[0].volumes, value=0, step=1)
         link_x = ipy.jslink((slider_x, 'value'), (text_x, 'value'))
         link_y = ipy.jslink((slider_y, 'value'), (text_y, 'value'))
         link_z = ipy.jslink((slider_z, 'value'), (text_z, 'value'))
+        link_v = ipy.jslink((slider_v, 'value'), (text_v, 'value'))
         widgets = ipy.interactive(
-            wrap_sections, pos_x=slider_x, pos_y=slider_y, pos_z=slider_z)
+            wrap_sections, pos_x=slider_x, pos_y=slider_y, pos_z=slider_z, vol=slider_v)
         # Now do some manual layout
-        slider_box = ipy.VBox(children=[slider_x, slider_y, slider_z])
-        text_box = ipy.VBox(children=[text_x, text_y, text_z], width=10)
+        slider_box = ipy.VBox(
+            children=[slider_x, slider_y, slider_z, slider_v])
+        text_box = ipy.VBox(
+            children=[text_x, text_y, text_z, text_v], width=10)
         vbox = ipy.HBox(children=[slider_box, text_box, values])
         return vbox
     else:

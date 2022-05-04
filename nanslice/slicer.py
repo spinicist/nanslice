@@ -87,6 +87,8 @@ class Slicer:
         physical = self.get_voxel_coords(affine)
         # Support timeseries by adding an extra co-ord specifying the volume
         if len(img_data.shape) == 4:
+            if volume >= img_data.shape[3]:
+                volume = img_data.shape[3] - 1
             vol_index = np.tile(volume, physical.shape[1:3])[np.newaxis, :]
             physical = np.concatenate((physical, vol_index), axis=0)
         return scale * ndinterp.map_coordinates(img_data, physical, order=order).T
