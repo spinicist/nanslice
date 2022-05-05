@@ -145,7 +145,7 @@ class Layer:
             new_vox[0:3, :] = vox
             new_vox[3, 0] = self.volume
             vox = new_vox
-        return ndinterp.map_coordinates(self.img_data, vox, order=1)[0]
+        return float(ndinterp.map_coordinates(self.img_data, vox, order=1)[0])
 
     def get_slice(self, slicer):
         """
