@@ -31,18 +31,18 @@ def three_plane(images, orient='clin', samples=128,
 def three_plane(images, orient='clin', samples=128,
                 volume=0, cmap=None, cbar=None, contour=None,
                 component=None,
-                interactive=False, title=None):
+                interactive=False, title=None, clim=None):
     if interactive:
         plt.ion()
     else:
         plt.ioff()
     if isinstance(images, str):
         layers = [Layer(images, cmap=cmap, volume=volume,
-                        component=component), ]
+                        component=component, clim=clim), ]
     elif isinstance(images, Layer):
         layers = [images, ]
     elif isinstance(images[0], str):
-        layers = [Layer(img, cmap=cmap, volume=volume, component=component)
+        layers = [Layer(img, cmap=cmap, volume=volume, component=component, clim=clim)
                   for img in images]
     else:
         layers = images
