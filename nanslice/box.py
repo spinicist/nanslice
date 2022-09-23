@@ -72,7 +72,7 @@ class Box:
         # Convedir_rt to physical space
         corners = np.array([[xmin, ymin, zmin, 1.],
                             [xmax, ymax, zmax, 1.]])
-        corners = np.dot(img.get_affine(), corners.T)
+        corners = np.dot(img.affine, corners.T)
         # Now do min/maxes again to standardise corners
         corner1 = np.min(corners[0:3, :], axis=1) - padding
         corner2 = np.max(corners[0:3, :], axis=1) + padding
