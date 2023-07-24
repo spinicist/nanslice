@@ -164,11 +164,11 @@ def slice_axis(images, nrows=1, ncols=3, slice_axis='z', slice_lims=(0.25, 0.75)
     return slices(images, nrows, ncols, slice_axes, slice_pos, False, orient, samples, cbar, contour, title)
 
 
-def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], absolute=False,
+def slices(images, nrows=1, ncols=1, slice_axes=None, slice_pos=None, absolute=False,
            orient='clin', samples=128, component=None,
-           cbar=None, contour=None, title=None):
+           clim=None, cbar=None, contour=None, title=None):
     if isinstance(images, str):
-        layers = [Layer(images, component=component), ]
+        layers = [Layer(images, component=component, clim=clim), ]
     elif isinstance(images, Layer):
         layers = [images, ]
     elif isinstance(images[0], str):
@@ -206,6 +206,15 @@ def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], abso
     else:
         gs1.update(left=0.01, right=0.99, bottom=0.01,
                    top=0.99, wspace=0.01, hspace=0.01)
+    nslices = nrows*ncols
+    if slice_axes is None:
+        slice_axes = ['z',]*nslices
+    elif len(slice_axes) != nslices:
+        raise('slice_axes did not match number of slices')
+    if slice_pos is None:
+        slice_pos = np.linspace(0.4, 0.7, nslices)
+    elif len(slice_pos) != nslices:
+        raise('slice_pos did not match number of slices')
     for row in range(nrows):
         for col in range(ncols):
             i = row*ncols + col
@@ -219,7 +228,7 @@ def slices(images, nrows=1, ncols=1, slice_axes=['z', ], slice_pos=[0.5, ], abso
             blended_slice = blend_layers(layers, slcr)
             iax = fig.add_subplot(gs1[row, col], facecolor='black')
             iax.imshow(blended_slice, origin='lower',
-                       extent=slcr.extent, interpolation='nearest')
+                       extent=slcr.extent, interpolation='bilinear')
             iax.axis('off')
             if contour:
                 sl_contour = layers[cbar].get_alpha(slcr)
