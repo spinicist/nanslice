@@ -71,7 +71,7 @@ class Layer:
 
         image = ensure_image(image)
         self.affine = image.affine
-        self.img_data = get_component(image.get_data(), component)
+        self.img_data = get_component(image.get_fdata(), component)
         self.shape = self.img_data.shape
         if len(self.shape) == 4:
             self.volumes = self.shape[3]
@@ -96,7 +96,7 @@ class Layer:
                 limdata = self.img_data
             if self.mask_image:
                 limdata = ma.masked_where(
-                    self.mask_image.get_data() == 0, limdata).compressed()
+                    self.mask_image.get_fdata() == 0, limdata).compressed()
             if climp is None:
                 climp = (2, 98)
             self.clim = nanpercentile(limdata, climp)
@@ -112,7 +112,7 @@ class Layer:
             self.alpha_image = load(str(alpha))
             if alpha_lim is None:
                 self.alpha_lim = nanpercentile(
-                    abs(self.alpha_image.get_data()), (2, 98))
+                    abs(self.alpha_image.get_fdata()), (2, 98))
             else:
                 self.alpha_lim = alpha_lim
 
@@ -171,7 +171,7 @@ class Layer:
 
     def get_mask(self, slicer):
         if self.mask_image:
-            mask_slc = slicer.sample(self.mask_image.get_data(
+            mask_slc = slicer.sample(self.mask_image.get_fdata(
             ), self.mask_image.affine, 0) > self.mask_threshold
         elif self.mask_threshold:
             mask_slc = slicer.sample(
@@ -191,7 +191,7 @@ class Layer:
 
         if self.alpha_image:
             alpha_slice = abs(slicer.sample(
-                self.alpha_image.get_data(), self.alpha_image.affine, self.interp_order, self.alpha_scale, self.volume))
+                self.alpha_image.get_fdata(), self.alpha_image.affine, self.interp_order, self.alpha_scale, self.volume))
             alpha_slice = slice_func.scale_clip(alpha_slice, self.alpha_lim)
             return alpha_slice
         else:
@@ -303,7 +303,7 @@ class H5Layer(Layer):
                 limdata = self.img_data
             if self.mask_image:
                 limdata = ma.masked_where(
-                    self.mask_image.get_data() == 0, limdata).compressed()
+                    self.mask_image.get_fdata() == 0, limdata).compressed()
             if climp is None:
                 climp = (2, 98)
             self.clim = nanpercentile(limdata, climp)
@@ -319,7 +319,7 @@ class H5Layer(Layer):
             self.alpha_image = load(str(alpha))
             if alpha_lim is None:
                 self.alpha_lim = nanpercentile(
-                    abs(self.alpha_image.get_data()), (2, 98))
+                    abs(self.alpha_image.get_fdata()), (2, 98))
             else:
                 self.alpha_lim = alpha_lim
 
