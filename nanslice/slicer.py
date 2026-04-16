@@ -7,7 +7,21 @@ image arrays that can be drawn with matlplotlib.
 """
 import numpy as np
 import scipy.ndimage.interpolation as ndinterp
-from . import util
+
+Axis_map = {'x': 0, 'y': 1, 'z': 2}
+Orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
+              'preclin': ({0: 2, 1: 2, 2: 0}, {0: 1, 1: 0, 2: 1})}
+
+
+def axis_indices(axis, orient='clin'):
+    """
+    Returns a pair of indices corresponding to right/up for the given orientation.
+    Parameters:
+    axis:   The perpendicular axis to the slice. Use Axis_map to convert between x/y/z and 0/1/2
+    orient: Either 'clin' or 'preclin'
+    """
+    this_orient = Orient_map[orient]
+    return (this_orient[0][axis], this_orient[1][axis])
 
 
 class Slicer:
@@ -27,11 +41,11 @@ class Slicer:
 
     def __init__(self, bbox, pos, axis, samples=64, orient='clin'):
         try:
-            ind_0 = util.Axis_map[axis]  # If someone passed in x/y/z
+            ind_0 = Axis_map[axis]  # If someone passed in x/y/z
         except KeyError:
             ind_0 = axis  # Assume it was an integer
 
-        ind_1, ind_2 = util.axis_indices(ind_0, orient=orient)
+        ind_1, ind_2 = axis_indices(ind_0, orient=orient)
         start = np.copy(bbox.start)
         start[ind_0] = pos
         dir_rt = np.zeros((3,))
@@ -62,7 +76,7 @@ class Slicer:
         if not np.array_equal(tfm, self._tfm):
             old_sz = self._world_space.shape
             new_sz = np.prod(self._world_space.shape[1:])
-            scale = np.mat(tfm[0:3, 0:3]).I
+            scale = np.asmatrix(tfm[0:3, 0:3]).I
             offset = np.dot(-scale, tfm[0:3, 3]).T
             isl = np.dot(scale, self._world_space.reshape(
                 [3, new_sz])) + offset[:]
@@ -77,18 +91,15 @@ class Slicer:
 
         Paramters:
 
-        - img_data -- Numpy array
-        - affine   -- Image affine transform
-        - order    -- Interpolation order. 1 is linear interpolation
-        - scale    -- Scale factor to multiply all voxel values by
-        - volume   -- If sampling 4D data, specify the desired volume
+        - img -- An nibabel image
+        - order -- Interpolation order. 1 is linear interpolation
+        - scale -- Scale factor to multiply all voxel values by
+        - volume -- If sampling 4D data, specify the desired volume
 
         """
         physical = self.get_voxel_coords(affine)
         # Support timeseries by adding an extra co-ord specifying the volume
         if len(img_data.shape) == 4:
-            if volume >= img_data.shape[3]:
-                volume = img_data.shape[3] - 1
             vol_index = np.tile(volume, physical.shape[1:3])[np.newaxis, :]
             physical = np.concatenate((physical, vol_index), axis=0)
         return scale * ndinterp.map_coordinates(img_data, physical, order=order).T

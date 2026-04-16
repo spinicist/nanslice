@@ -1,54 +1,14 @@
-"""
-nanslicer.py
-
-A command-line tool for producing figures with slices through MR images. This is installed
-by PIP as ``nanslicer``. Supports overlays, dual-coded overlays and colorbars. Dual-coding is
-described here https://www.cell.com/neuron/fulltext/S0896-6273(12)00428-X.
-
-The minimum command-line call is:
-
-``nanslicer image.nii.gz output.png``
-
-To add a dual-coded overlay, call:
-
-``nanslicer structural.nii.gz output.png --overlay beta.nii.gz --overlay_alpha pval.nii.gz``
-
-There are a lot of command-line options to control the colormaps and scaling. Type
-``nanviewer --help`` to see a full list. The number of slices can be controlled with
-the ``--slice_rows`` and ``--slice_cols`` arguments, or you can choose ``--three_axis``.
-The ``--slice_axis`` and ``--slice_lims`` arguments specify the axis along which to slice,
-and where to start and stop along it (expressed as fractions), for example:
-
-``nanslicer structural.nii.gz --slice_axis x --slice_lims 0.25 0.75``
-
-If you have timeseries data as the base image, you can plot the same slice through
-each volume with ``--timeseries``, or you can choose the volume in the timeseries to use
-with ``--volume N`` (the default is the first).
-
-Controlling image quality is slightly complicated because there are two interpolation
-steps. First we have to sample the 3D volumes to produce 2D slices to arbitrary
-precision. Then, ``matplotlib`` has to sample those slices to plot them to the canvas.
-The first step is controlled by ``--samples N``, which controls the number of points to sample in
-each direction of the slice, and ``--interp_order N``, which controls the quality
-of the interpolation. The defaults are 128 and 1 (linear interpolation). Increase
-them to increase the quality. The ``matplotlib`` step is controlled by ``--interp METHOD``,
-and can be any valid ``matplotlib` interpolation method. The default is ``hanning``,
-for increased speed this can be changed to ``linear`` or ``none``. From experience,
-it is the quality of the ``matplotlib`` step which is the dominant factor in figure
-quality, hence the defaults of fairly fast sampling in the slicing step but using
-Hanning sampling in the ``matplotlib`` step.
-"""
 import argparse
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from .util import add_common_arguments, Axis_map
-from .colorbar import colorbar, alphabar
-from .box import Box
-from .slicer import Slicer
-from .slice_func import scale_clip
-from .layer import Layer, blend_layers
+from util import add_common_arguments
+from colorbar import colorbar, alphabar
+from box import Box
+from slicer import Slicer, Axis_map
+from slice_func import scale_clip
+from layer import Layer, blend_layers
 
 
 def main(args=None):
@@ -81,7 +41,7 @@ def main(args=None):
                         help='Plot one volume from a timeseries')
 
     parser.add_argument('--bar_pos', type=str, default='south',
-                        help='Position of color-bar (north/south/east/west)')
+                        help='Position of color-bar (south / east)')
     parser.add_argument('--figsize', type=float, nargs=2,
                         default=None, help='Figure size (width, height) in inches')
     parser.add_argument('--dpi', type=int, default=150,
@@ -121,7 +81,7 @@ def main(args=None):
         slice_pos = (bbox.center[0], bbox.center[1], bbox.center[2])
     elif args.timeseries:
         slice_pos = bbox.center[args.slice_axis]
-        slice_total = layers[0].shape[3]
+        slice_total = layers[0].image.shape[3]
     elif args.slices:
         slice_total = args.slice_rows*args.slice_cols
         if slice_total != len(args.slices):
@@ -166,6 +126,8 @@ def main(args=None):
         sl_final = blend_layers(layers, slcr)
         ax.imshow(sl_final, origin=origin, extent=slcr.extent,
                   interpolation=args.interp)
+        if args.radiological:
+            ax.invert_xaxis()
         ax.axis('off')
         if args.contour:
             sl_contour = layers[1].get_alpha(slcr)
@@ -185,42 +147,23 @@ def main(args=None):
         print('*** Adding colorbar')
         if args.bar_pos.lower() == 'south':
             cbar_bottom = 0.3 * (args.fontsize / 12) / args.figsize[1]
-            cbar_top = cbar_bottom + 0.1 / args.figsize[1]
+            cbar_top = cbar_bottom + 0.5 / args.figsize[1]
             gs1.update(left=0.01, right=0.99, bottom=cbar_top+0.001,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.1, right=0.9, bottom=cbar_bottom,
+            gs2.update(left=0.05, right=0.95, bottom=cbar_bottom,
                        top=cbar_top, wspace=0.1, hspace=0.1)
             c_orient = 'h'
             c_axes = plt.subplot(gs2[0], facecolor='black')
-        elif args.bar_pos.lower() == 'south-inset':
+        elif args.bar_pos.lower() == 'south_out':
             gs1.update(left=0.01, right=0.99, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             c_orient = 'h'
             c_axes = figure.add_subplot(3, 3, 8)
             c_axes.set_position([0.1, 0.1, 0.8, 0.05])
             print('Rect: ', c_axes.get_position())
-        elif args.bar_pos.lower() == 'north':
-            cbarh = 0.15 * (args.fontsize / 12) / args.figsize[1]
-            gs1.update(left=0.01, right=0.99, bottom=0.01,
-                       top=0.99 - cbarh, wspace=0.01, hspace=0.01)
-            gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.07, right=0.93, bottom=0.99 - cbarh,
-                       top=0.99, wspace=0.01, hspace=0.01)
-            c_orient = 'h'
-            c_axes = plt.subplot(gs2[0], facecolor='black')
-            print('Rect: ', c_axes.get_position())
-        elif args.bar_pos.lower() == 'west':
-            cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
-            gs1.update(left=0.01 + cbarw, right=0.99, bottom=0.01,
-                       top=0.99, wspace=0.01, hspace=0.01)
-            gs2 = gridspec.GridSpec(1, 1)
-            gs2.update(left=0.01, right=cbarw, bottom=0.08,
-                       top=0.92, wspace=0.01, hspace=0.01)
-            c_orient = 'v'
-            c_axes = plt.subplot(gs2[0], facecolor='black')
         elif args.bar_pos.lower() == 'east':
-            cbarw = 0.35 * (args.fontsize / 12) / args.figsize[0]
+            cbarw = 0.275 * (args.fontsize / 12) / args.figsize[0]
             gs1.update(left=0.01, right=1 - cbarw, bottom=0.01,
                        top=0.99, wspace=0.01, hspace=0.01)
             gs2 = gridspec.GridSpec(1, 1)
@@ -231,9 +174,9 @@ def main(args=None):
         else:
             raise ValueError('Unsupported bar position: ' + args.bar_pos)
 
-        if args.overlay_alpha:
+        if args.overlay_alpha:            
             alphabar(c_axes, args.overlay_map, args.overlay_lim, args.overlay_label,
-                     args.overlay_alpha_lim, args.overlay_alpha_label, orient=c_orient)
+                     args.overlay_alpha_lim, args.overlay_alpha_label, alines=args.contour, orient=c_orient)
         else:
             if args.base_map:
                 colorbar(c_axes, layers[0].cmap, layers[0].clim,
@@ -253,7 +196,6 @@ def main(args=None):
     figure.savefig(args.output, facecolor=figure.get_facecolor(),
                    edgecolor='none', dpi=args.dpi)
     plt.close(figure)
-
 
 if __name__ == "__main__":
     main()
