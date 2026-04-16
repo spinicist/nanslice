@@ -5,7 +5,7 @@ Utility functions for nanslice module
 """
 from pathlib import Path
 import numpy as np
-import nibabel as nib
+from nibabel import load
 
 
 def check_path(maybe_path):
@@ -19,7 +19,7 @@ def check_path(maybe_path):
 def ensure_image(maybe_path):
     """Helper function that lets either images or paths be passed around"""
     if check_path(maybe_path):
-        return nib.load(str(maybe_path))
+        return load(str(maybe_path))
     else:
         return maybe_path
 
@@ -90,30 +90,7 @@ def add_common_arguments(parser):
                         help='Data interpolation order, default=1')
     parser.add_argument('--orient', type=str, default='clin',
                         help='Clinical (clin) or Pre-clinical (preclin) orientation')
+    parser.add_argument('--radiological', action='store_true',
+                        help='Display images in radiological convention (patient left on viewer right). '
+                             'Default is neurological convention (patient left on viewer left).')
     return parser
-
-
-Axis_map = {'x': 0, 'y': 1, 'z': 2}
-Orient_map = {'clin': ({0: 1, 1: 0, 2: 0}, {0: 2, 1: 2, 2: 1}),
-              'preclin': ({0: 2, 1: 2, 2: 0}, {0: 1, 1: 0, 2: 1})}
-
-
-def axis_indices(axis, orient='clin'):
-    """
-    Returns a pair of indices corresponding to right/up for the given orientation.
-    Parameters:
-    axis:   The perpendicular axis to the slice. Use Axis_map to convert between x/y/z and 0/1/2
-    orient: Either 'clin' or 'preclin'
-    """
-    this_orient = Orient_map[orient]
-    return (this_orient[0][axis], this_orient[1][axis])
-
-
-def crosshairs(axis, point, direction, orient, color='g'):
-    """
-    Helper function to draw crosshairs on an axis
-    """
-    ind1, ind2 = axis_indices(Axis_map[direction], orient)
-    vline = axis.axvline(x=point[ind1], color=color)
-    hline = axis.axhline(y=point[ind2], color=color)
-    return (vline, hline)
