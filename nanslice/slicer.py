@@ -62,7 +62,7 @@ class Slicer:
         if not np.array_equal(tfm, self._tfm):
             old_sz = self._world_space.shape
             new_sz = np.prod(self._world_space.shape[1:])
-            scale = np.mat(tfm[0:3, 0:3]).I
+            scale = np.asmatrix(tfm[0:3, 0:3]).I
             offset = np.dot(-scale, tfm[0:3, 3]).T
             isl = np.dot(scale, self._world_space.reshape(
                 [3, new_sz])) + offset[:]
