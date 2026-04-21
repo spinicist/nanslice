@@ -62,7 +62,7 @@ class Box:
         - img -- The volume to create the bounding-box from
         - padding -- Number of extra voxels to pad the resulting box by
         """
-        data = img.get_data()
+        data = img.get_fdata()
 
         # Individual axis min/maxes
         xmin, xmax = np.where(np.any(data, axis=(1, 2)))[0][[0, -1]]
@@ -72,7 +72,7 @@ class Box:
         # Convedir_rt to physical space
         corners = np.array([[xmin, ymin, zmin, 1.],
                             [xmax, ymax, zmax, 1.]])
-        corners = np.dot(img.affine, corners.T)
+        corners = np.dot(img.get_sform(), corners.T)
         # Now do min/maxes again to standardise corners
         corner1 = np.min(corners[0:3, :], axis=1) - padding
         corner2 = np.max(corners[0:3, :], axis=1) + padding
