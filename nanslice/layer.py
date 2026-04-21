@@ -85,7 +85,7 @@ class Layer:
         elif self.mask_image:
             self.bbox = Box.fromMask(self.mask_image)
         else:
-            self.bbox = Box.fromImage(self.shape, self.affine)
+            self.bbox = Box.fromImage(self.image)
 
         if clim is not None:
             self.clim = clim
