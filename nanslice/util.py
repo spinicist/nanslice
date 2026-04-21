@@ -90,6 +90,9 @@ def add_common_arguments(parser):
                         help='Data interpolation order, default=1')
     parser.add_argument('--orient', type=str, default='clin',
                         help='Clinical (clin) or Pre-clinical (preclin) orientation')
+    parser.add_argument('--radiological', action='store_true',
+                        help='Display images in radiological convention (patient left on viewer right). '
+                             'Default is neurological convention (patient left on viewer left).')
     return parser
 
 

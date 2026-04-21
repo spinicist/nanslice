@@ -166,6 +166,8 @@ def main(args=None):
         sl_final = blend_layers(layers, slcr)
         ax.imshow(sl_final, origin=origin, extent=slcr.extent,
                   interpolation=args.interp)
+        if args.radiological:
+            ax.invert_xaxis()
         ax.axis('off')
         if args.contour:
             sl_contour = layers[1].get_alpha(slcr)
