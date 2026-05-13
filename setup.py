@@ -39,7 +39,8 @@ setup(
         'console_scripts': [
             'nanslicer=nanslice.nanslicer:main',
             'nanviewer=nanslice.nanviewer:main',
-            'nanscroll=nanslice.nanscroll:main'
+            'nanscroll=nanslice.nanscroll:main',
+            'roislicer=nanslice.roislicer:main'
         ],
     },
 )

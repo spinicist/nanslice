@@ -6,5 +6,5 @@ and the :py:func:`~nanslice.layer.blend_layers` function, are imported here
 for convenient access. Between them, they do all the important work.
 """
 
-from .layer import Layer, blend_layers
+from .layer import Layer, blend_layers, ROILayer, roi_image_from_csv
 from .slicer import Slicer

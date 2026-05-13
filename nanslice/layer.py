@@ -6,6 +6,9 @@ function.
 """
 import scipy.ndimage.interpolation as ndinterp
 import h5py
+import numpy as np
+import pandas as pd
+import nibabel as nib
 from numpy import zeros, isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot, eye
 from nibabel import load
 from . import slice_func
@@ -233,6 +236,139 @@ def blend_layers(layers, slicer):
         else:
             slc = slice_func.mask(next_slc, next_layer.get_mask(slicer), slc)
     return slc
+
+
+def roi_image_from_csv(label_image, csv_file, label_col=None, value_col=None):
+    """
+    Creates an in-memory nibabel image where each ROI voxel is assigned the
+    corresponding value from a CSV file (a "stained glass" value map).
+
+    Parameters:
+
+    - label_image -- Path or nibabel image of an integer-valued atlas/ROI file
+    - csv_file    -- Path to a CSV file (or a pandas DataFrame) mapping label IDs to values.
+                     The file must have one column with integer label IDs and one with the values.
+    - label_col   -- Name or index of the column containing ROI integer labels.
+                     Defaults to the first column.
+    - value_col   -- Name or index of the column containing the values to map.
+                     Defaults to the second column.
+
+    Returns a nibabel Nifti1Image with the same affine/header as *label_image*
+    and float32 data where every voxel belonging to a labelled ROI holds the
+    corresponding value (0 for labels absent from the CSV, NaN for background
+    label 0).
+    """
+    img = ensure_image(label_image)
+    label_data = np.round(img.get_fdata()).astype(np.int32)
+
+    if isinstance(csv_file, pd.DataFrame):
+        df = csv_file
+    else:
+        df = pd.read_csv(csv_file)
+
+    if label_col is None:
+        label_col = df.columns[0]
+    if value_col is None:
+        value_col = df.columns[1]
+
+    value_map = dict(zip(df[label_col].astype(int), df[value_col].astype(float)))
+
+    value_data = np.full(label_data.shape, np.nan, dtype=np.float32)
+    for label_id, val in value_map.items():
+        value_data[label_data == label_id] = val
+
+    return nib.Nifti1Image(value_data, img.affine, img.header)
+
+
+class ROILayer(Layer):
+    """
+    A Layer built from an integer atlas/ROI NIfTI and a CSV of per-ROI values,
+    producing a "stained glass" overlay where each region is filled with a
+    uniform colour derived from the mapped value.
+
+    Constructor parameters (in addition to standard :py:class:`Layer` parameters):
+
+    - label_image    -- Path or nibabel image with integer ROI labels
+    - csv_file       -- Path to CSV file (or a pandas DataFrame) with label → value mapping
+    - label_col      -- Column name/index for the integer label IDs (default: first column)
+    - value_col      -- Column name/index for the values to map (default: second column)
+    - cmap           -- Colormap to apply (default: 'RdYlBu_r')
+    - clim           -- (min, max) limits for colormap; computed from data if not given
+    - mask_threshold -- Threshold to mask background; default 0 (masks NaN/zero background)
+    - contour        -- Draw boundary contours around each ROI (default: True)
+    - contour_color  -- Matplotlib color for the contour lines (default: 'k')
+    - contour_linewidth -- Line width of the contour lines (default: 0.5)
+
+    All other :py:class:`Layer` keyword arguments are forwarded as-is.
+
+    Example::
+
+        bg  = Layer('T1.nii.gz', cmap='gist_gray')
+        roi = ROILayer('atlas.nii.gz', 'stats.csv',
+                       label_col='roi_id', value_col='t_stat',
+                       cmap='RdYlBu_r', clim=(-4, 4),
+                       contour=True, contour_color='white', contour_linewidth=0.8)
+        fig, axes = plt.subplots(1, 3)
+        slicers = [Slicer(bg.bbox, pos, 'z') for pos in [0.4, 0.5, 0.6]]
+        for ax, sl in zip(axes, slicers):
+            ax.imshow(blend_layers([bg, roi], sl), origin='lower', extent=sl.extent)
+            roi.plot_contours(sl, ax)
+    """
+
+    def __init__(self, label_image, csv_file,
+                 label_col=None, value_col=None,
+                 cmap='RdYlBu_r', clim=None, mask_threshold=0,
+                 contour=True, contour_color='k', contour_linewidth=0.5,
+                 **kwargs):
+        label_img = ensure_image(label_image)
+        self._label_data = np.round(label_img.get_fdata()).astype(np.int32)
+        self._label_affine = label_img.affine
+        self.contour = contour
+        self.contour_color = contour_color
+        self.contour_linewidth = contour_linewidth
+
+        value_img = roi_image_from_csv(label_img, csv_file, label_col, value_col)
+        # Use nearest-neighbour interpolation to keep hard ROI boundaries
+        super().__init__(value_img, cmap=cmap, clim=clim,
+                         interp_order=0, mask_threshold=mask_threshold,
+                         **kwargs)
+
+    def plot_contours(self, slicer, axes):
+        """
+        Draw boundary contours around each ROI onto a matplotlib axes.
+
+        Call this after ``blend_layers`` to add contours when the fill is
+        rendered via the blend pipeline rather than through ``plot()``.
+
+        Parameters:
+
+        - slicer -- The :py:class:`~nanslice.slicer.Slicer` used for the slice
+        - axes   -- A matplotlib axes object
+        """
+        label_slice = slicer.sample(self._label_data, self._label_affine, 0)
+        unique_labels = np.unique(label_slice)
+        # Build contour levels at half-integer boundaries between distinct labels
+        levels = unique_labels[unique_labels > 0] - 0.5
+        if len(levels) == 0:
+            return
+        axes.contour(label_slice, levels=levels,
+                     colors=self.contour_color,
+                     linewidths=self.contour_linewidth,
+                     extent=slicer.extent, origin='lower')
+
+    def plot(self, slicer, axes):
+        """
+        Plot the ROI fill and, if *contour* is True, the boundary contours.
+
+        Parameters:
+
+        - slicer -- The :py:class:`~nanslice.slicer.Slicer` object to slice with
+        - axes   -- A matplotlib axes object
+        """
+        cax = super().plot(slicer, axes)
+        if self.contour:
+            self.plot_contours(slicer, axes)
+        return cax
 
 
 class H5Layer(Layer):
