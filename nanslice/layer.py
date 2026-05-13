@@ -9,7 +9,7 @@ import h5py
 import numpy as np
 import pandas as pd
 import nibabel as nib
-from numpy import zeros, isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle, mat, dot, eye
+from numpy import zeros, isfinite, nanpercentile, ma, ones_like, array, iscomplexobj, abs, angle
 from nibabel import load
 from . import slice_func
 from .box import Box
@@ -88,7 +88,7 @@ class Layer:
         elif self.mask_image:
             self.bbox = Box.fromMask(self.mask_image)
         else:
-            self.bbox = Box.fromImage(self.image)
+            self.bbox = Box.fromImage(image)
 
         if clim is not None:
             self.clim = clim
@@ -139,10 +139,10 @@ class Layer:
 
         - pos -- The position to sample the image value at
         """
-        pos = mat(pos).T
-        scale = mat(self.affine[0:3, 0:3]).I
-        offset = dot(-scale, self.affine[0:3, 3]).T
-        vox = dot(scale, pos) + offset
+        pos = np.array(pos).reshape(3, 1)
+        scale = np.linalg.inv(self.affine[0:3, 0:3])
+        offset = (-scale @ self.affine[0:3, 3]).reshape(3, 1)
+        vox = scale @ pos + offset
         if len(self.shape) == 4:
             new_vox = zeros((4, 1))
             new_vox[0:3, :] = vox
@@ -272,10 +272,12 @@ def roi_image_from_csv(label_image, csv_file, label_col=None, value_col=None):
         value_col = df.columns[1]
 
     value_map = dict(zip(df[label_col].astype(int), df[value_col].astype(float)))
+    value_map.pop(0, None)  # always ignore background label 0
 
     value_data = np.full(label_data.shape, np.nan, dtype=np.float32)
     for label_id, val in value_map.items():
         value_data[label_data == label_id] = val
+    # Voxels with label > 0 but absent from the CSV stay NaN → masked out
 
     return nib.Nifti1Image(value_data, img.affine, img.header)
 
@@ -332,6 +334,11 @@ class ROILayer(Layer):
         super().__init__(value_img, cmap=cmap, clim=clim,
                          interp_order=0, mask_threshold=mask_threshold,
                          **kwargs)
+
+    def get_mask(self, slicer):
+        """Show only voxels where a label > 0 exists in the atlas."""
+        label_slice = slicer.sample(self._label_data, self._label_affine, 0)
+        return label_slice > 0
 
     def plot_contours(self, slicer, axes):
         """
